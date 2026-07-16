@@ -1,0 +1,73 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="files" name="Module Files">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="780" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="📁 Module Files — stockage sécurisé + exports génériques (Excel / PDF)" style="text;html=1;fontSize=20;fontStyle=1;fontColor=#1F2D3D;align=left" vertex="1" parent="1">
+          <mxGeometry x="40" y="15" width="1000" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="zFiles" value="📁 Module files" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF7EE;strokeColor=#ABEBC6;dashed=1;verticalAlign=top;fontStyle=2;fontColor=#196F3D;opacity=60" vertex="1" parent="1">
+          <mxGeometry x="450" y="95" width="250" height="545" as="geometry" />
+        </mxCell>
+        <mxCell id="zPersist" value="💽 Persistance" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9E7;strokeColor=#F7DC6F;dashed=1;verticalAlign=top;fontStyle=2;fontColor=#7D6608;opacity=60" vertex="1" parent="1">
+          <mxGeometry x="740" y="95" width="220" height="380" as="geometry" />
+        </mxCell>
+
+        <mxCell id="client" value="👤 Client" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="150" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ctrl" value="🎯 Contrôleur métier&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#5B2C6F&quot;&gt;upload / download&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="230" y="150" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="fsvc2" value="🧩 PaDocumentService&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#1A5276&quot;&gt;module métier appelant&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D4E1F5;strokeColor=#6C8EBF" vertex="1" parent="1">
+          <mxGeometry x="230" y="290" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="reqExp" value="🧩 Module request&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#1A5276&quot;&gt;exports Excel / PDF&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D4E1F5;strokeColor=#6C8EBF" vertex="1" parent="1">
+          <mxGeometry x="230" y="515" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="fs" value="📁 FileStorageService&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#196F3D&quot;&gt;store · load · replace · delete&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="470" y="135" width="210" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="val" value="🔍 Validation&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#196F3D&quot;&gt;taille · extension · type MIME · anti-traversal&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366" vertex="1" parent="1">
+          <mxGeometry x="470" y="255" width="210" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="scan" value="🦠 Scan antivirus&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#B03A2E&quot;&gt;(à venir — ClamAV)&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDEDEC;strokeColor=#E6B0AA;dashed=1" vertex="1" parent="1">
+          <mxGeometry x="470" y="350" width="210" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="xls" value="📊 ExcelExportService&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#196F3D&quot;&gt;.xlsx générique (POI, en-tête + filtres)&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5F5E3;strokeColor=#82B366" vertex="1" parent="1">
+          <mxGeometry x="470" y="460" width="210" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pdf" value="📄 HtmlPdfService&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#196F3D&quot;&gt;HTML/CSS → PDF (Flying Saucer)&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5F5E3;strokeColor=#82B366" vertex="1" parent="1">
+          <mxGeometry x="470" y="555" width="210" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="disk" value="💽 Disque&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#7D6608&quot;&gt;files.base-path (racine confinée)&lt;/span&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;boundedLbl=1;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="770" y="135" width="170" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="sf" value="🧾 StoredFile&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#7D6608&quot;&gt;chemin relatif + métadonnées&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCF3CF;strokeColor=#D6B656" vertex="1" parent="1">
+          <mxGeometry x="770" y="270" width="170" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="docdb" value="🗄️ pa_document&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#7D6608&quot;&gt;métadonnées en base&lt;/span&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;boundedLbl=1" vertex="1" parent="1">
+          <mxGeometry x="770" y="365" width="170" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f1" value="upload / download" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#2D6CDF;fontColor=#2D6CDF;strokeWidth=2" edge="1" parent="1" source="client" target="ctrl"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="f2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#2D6CDF;strokeWidth=2" edge="1" parent="1" source="ctrl" target="fsvc2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="f3" value="store(file, subdir)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#2D6CDF;fontColor=#2D6CDF;strokeWidth=2" edge="1" parent="1" source="fsvc2" target="fs"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="f4" value="① valider" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#2D6CDF;fontColor=#2D6CDF;strokeWidth=2" edge="1" parent="1" source="fs" target="val"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="f5" value="② scanner (à venir)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1;strokeColor=#B03A2E;fontColor=#B03A2E" edge="1" parent="1" source="val" target="scan"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="f6" value="③ écrire" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#B9770E;fontColor=#9C640C;strokeWidth=2" edge="1" parent="1" source="fs" target="disk"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="f7" value="④ chemin + métadonnées" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#B9770E;fontColor=#9C640C" edge="1" parent="1" source="fs" target="sf"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="f8" value="⑤ save métadonnées" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#2D6CDF;fontColor=#2D6CDF" edge="1" parent="1" source="fsvc2" target="docdb"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="f9" value="load(path) → Resource" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1;strokeColor=#5D6D7E;fontColor=#5D6D7E" edge="1" parent="1" source="ctrl" target="fs"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="f10" value="générer .xlsx" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#27AE60;fontColor=#1E8449" edge="1" parent="1" source="reqExp" target="xls"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="f11" value="générer PDF" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#27AE60;fontColor=#1E8449" edge="1" parent="1" source="reqExp" target="pdf"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

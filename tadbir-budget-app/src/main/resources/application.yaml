@@ -1,0 +1,138 @@
+#
+# Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+#
+# This source code is the exclusive property of Zakaria El Kotb.
+# Unauthorized copying, modification, distribution, or use of this file,
+# via any medium, is strictly prohibited without the prior written
+# permission of the copyright owner.
+#
+# Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+#
+
+spring:
+  application:
+    name: tadbir-budget
+  profiles:
+    active: dev
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      initialization-fail-timeout: 5000
+      connection-test-query: SELECT 1
+      auto-commit: true
+  liquibase:
+    change-log: classpath:db/changelog/master.xml
+    enabled: true
+    liquibase-schema: public
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        ddl-auto: none   # disable auto schema generation
+      org:
+        hibernate:
+          envers:
+            audit_table_suffix: _audit
+            revision_field_name: rev
+            revision_type_field_name: revtype
+            store_data_at_delete: true
+            default_schema: public
+            audit_strategy: org.hibernate.envers.strategy.DefaultAuditStrategy
+  data:
+    web:
+    pageable:
+      default-page-size: 20
+      max-page-size: 100
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+  # SMTP server for e-mail notifications. Only used when notification.mail.enabled=true.
+  # Override host/credentials per environment (env vars). Left blank here so dev/test
+  # boot without a mail server (the mail channel logs instead of sending).
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+jwt:
+  secret: ${JWT_SECRET:dGFkYmlyLXVyYmFpbi1qd3Qtc2VjcmV0LWtleS0yMDI2LXByb2R1Y3Rpb24h}  # Base64, min 256 bits — override in prod
+  expiration: 900          # 15 minutes (seconds)
+
+refresh:
+  expiration: 604800       # 7 days (seconds)
+
+app:
+  cookie:
+    secure: ${APP_COOKIE_SECURE:true}   # set false only when serving over plain HTTP (no TLS)
+
+# Allowed browser origins for CORS — the frontend URL(s), comma-separated. Override per env.
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: when-authorized   # full details only for authenticated users
+
+lockout:
+  max-attempts: 5   # failed attempts before account is disabled — admin must re-enable
+
+rate-limit:
+  enabled: true
+  auth:
+    capacity: 5          # burst: 5 requests before throttling
+    refill-tokens: 5     # restore 5 tokens every refill-seconds
+    refill-seconds: 60
+  api:
+    capacity: 100
+    refill-tokens: 100
+    refill-seconds: 60
+
+notification:
+  enabled: true            # master switch for the background dispatcher
+  mail:
+    enabled: ${MAIL_ENABLED:false}   # when false, e-mails are logged, not sent (dev/test default)
+    from: ${MAIL_FROM:no-reply@tadbir-budget.ma}
+    per-second: 2          # throttle: max e-mails delivered per second
+  app:
+    per-second: 10         # throttle: max in-app notifications delivered per second
+  dispatch:
+    fixed-delay-ms: 1000   # how often the dispatcher drains the queue
+    batch-size: 100        # max rows fetched per channel per tick
+  backoff:
+    max-attempts: 5        # give up (FAILED) after this many failed deliveries
+    initial-seconds: 30    # first retry delay; doubles each subsequent retry
+    multiplier: 2.0
+
+files:
+  base-path: ${FILES_BASE_PATH:D:/projects/tadbir-files}
+  max-size-bytes: 10485760          # 10 MB per file
+  allowed-extensions: pdf,png,jpg,jpeg,doc,docx,xls,xlsx
+  # allowed-content-types: (empty) — extension check is enough; add to also restrict by MIME
+
+workflow:
+  notifications:
+    enabled: true   # set to false to disable all workflow → notification bridging
+
+# Flowable BPMN engine. It manages its own ACT_* tables on the shared datasource.
+flowable:
+  database-schema-update: true        # create/upgrade Flowable's own tables on startup
+  history-level: full                 # keep task/variable history for queries
+  async-executor-activate: true       # run the job executor (BPMN timers, async tasks)
+  # Bundled BPMN under classpath:/processes/*.bpmn20.xml auto-deploy on startup.
+  check-process-definitions: true
+
+logging:
+  config: classpath:/log-config/logback-spring.xml

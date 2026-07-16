@@ -1,0 +1,52 @@
+<!--
+
+    Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+
+    This source code is the exclusive property of Zakaria El Kotb.
+    Unauthorized copying, modification, distribution, or use of this file,
+    via any medium, is strictly prohibited without the prior written
+    permission of the copyright owner.
+
+    Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+
+-->
+<configuration>
+
+    <!-- ── Human-readable file (always on) ───────────────────────────────── -->
+    <appender name="FILE-HUMAN" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/var/log/tadbir-budget/application.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>/var/log/tadbir-budget/application.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{traceId:--}/%X{spanId:--}] [%X{username:-anonymous}] [%X{ip:--}] [%X{method:-}] [%X{uri:-}] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!--
+    ── ELK-ready JSON file (see logback-spring-prod.xml for activation instructions) ──
+    -->
+    <!--
+    <appender name="FILE-JSON" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/var/log/tadbir-budget/application.json</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>/var/log/tadbir-budget/application.%d{yyyy-MM-dd}.json</fileNamePattern>
+            <maxHistory>14</maxHistory>
+            <totalSizeCap>5GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"app":"tadbir-budget","env":"stage"}</customFields>
+        </encoder>
+    </appender>
+    -->
+
+    <root level="INFO">
+        <appender-ref ref="FILE-HUMAN"/>
+        <!-- <appender-ref ref="FILE-JSON"/> -->
+    </root>
+
+    <logger name="org.springframework" level="WARN"/>
+
+</configuration>

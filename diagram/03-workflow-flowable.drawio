@@ -1,0 +1,105 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="workflow" name="Workflow Flowable">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="820" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="🔄 Module Workflow — moteur BPMN Flowable (générique, piloté par événements)" style="text;html=1;fontSize=20;fontStyle=1;fontColor=#1F2D3D;align=left" vertex="1" parent="1">
+          <mxGeometry x="40" y="15" width="1000" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="zReq" value="🟦 Module request (domaine PA)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF2FB;strokeColor=#AED6F1;dashed=1;verticalAlign=top;fontStyle=2;fontColor=#1A5276;opacity=60" vertex="1" parent="1">
+          <mxGeometry x="230" y="80" width="250" height="440" as="geometry" />
+        </mxCell>
+        <mxCell id="zWf" value="🟩 Module workflow (générique — sans domaine)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF7EE;strokeColor=#ABEBC6;dashed=1;verticalAlign=top;fontStyle=2;fontColor=#196F3D;opacity=60" vertex="1" parent="1">
+          <mxGeometry x="500" y="80" width="250" height="440" as="geometry" />
+        </mxCell>
+        <mxCell id="zFlow" value="🔄 Flowable (moteur BPMN)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9E7;strokeColor=#F7DC6F;dashed=1;verticalAlign=top;fontStyle=2;fontColor=#7D6608;opacity=60" vertex="1" parent="1">
+          <mxGeometry x="780" y="80" width="250" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="zBpmn" value="📜 Processus BPMN — REQUEST_INSTRUCTION" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4F6F7;strokeColor=#D5D8DC;dashed=1;verticalAlign=top;fontStyle=2;fontColor=#566573;opacity=70" vertex="1" parent="1">
+          <mxGeometry x="230" y="600" width="820" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="citizen" value="🧍 Citoyen" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="instructor" value="🧑‍💼 Instructeur" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="250" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="validator" value="✅ Validateur (N+1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="380" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prs" value="📝 PaRequestService&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#1A5276&quot;&gt;démarre le process à la création&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D4E1F5;strokeColor=#6C8EBF" vertex="1" parent="1">
+          <mxGeometry x="250" y="120" width="210" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="rvs" value="🗒️ ReviewService&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#1A5276&quot;&gt;journal d'avis + statut live&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D4E1F5;strokeColor=#6C8EBF" vertex="1" parent="1">
+          <mxGeometry x="250" y="290" width="210" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pn" value="📨 RequestProgressNotifier&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#1A5276&quot;&gt;prévient le citoyen&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D4E1F5;strokeColor=#6C8EBF" vertex="1" parent="1">
+          <mxGeometry x="250" y="430" width="210" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rt" value="⚙️ WorkflowRuntimeService&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#196F3D&quot;&gt;start · inbox · claim · complete&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="520" y="150" width="210" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="br" value="📡 WorkflowEventBridge&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#196F3D&quot;&gt;Flowable → événements Spring&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366" vertex="1" parent="1">
+          <mxGeometry x="520" y="300" width="210" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="an" value="🔔 WorkflowAssigneeNotifier&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#196F3D&quot;&gt;prévient l'acteur assigné&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366" vertex="1" parent="1">
+          <mxGeometry x="520" y="430" width="210" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="fe" value="🔄 Flowable Engine&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#7D6608&quot;&gt;RuntimeService · TaskService&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="800" y="130" width="210" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="act" value="🗄️ Tables ACT_*&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#7D6608&quot;&gt;instances · tâches · historique&lt;/span&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#FCF3CF;strokeColor=#D6B656;boundedLbl=1" vertex="1" parent="1">
+          <mxGeometry x="820" y="250" width="170" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ns" value="📣 NotificationService&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#5D6D7E&quot;&gt;enqueue()&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDEBD0;strokeColor=#D79B00;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1080" y="410" width="190" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="w1" value="POST /pa/requests" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#2D6CDF;fontColor=#2D6CDF;strokeWidth=2" edge="1" parent="1" source="citizen" target="prs"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="w2" value="start(REQUEST_INSTRUCTION, businessKey)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#2D6CDF;fontColor=#2D6CDF;strokeWidth=2" edge="1" parent="1" source="prs" target="rt"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="w3" value="start / claim / complete" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#2D6CDF;fontColor=#2D6CDF;strokeWidth=2" edge="1" parent="1" source="rt" target="fe"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="w4" value="persist" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#B9770E;fontColor=#9C640C" edge="1" parent="1" source="fe" target="act"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="w5" value="claim / complete" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1;strokeColor=#5D6D7E;fontColor=#5D6D7E" edge="1" parent="1" source="instructor" target="rt"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="w6" value="POST reviews" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1;strokeColor=#5D6D7E;fontColor=#5D6D7E" edge="1" parent="1" source="instructor" target="rvs"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="w7" value="complete {VALIDATE / RETURN}" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1;strokeColor=#5D6D7E;fontColor=#5D6D7E" edge="1" parent="1" source="validator" target="rt"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="w8" value="findActiveTask" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#2D6CDF;fontColor=#2D6CDF" edge="1" parent="1" source="rvs" target="rt"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="w9" value="task / process events" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#B9770E;fontColor=#9C640C" edge="1" parent="1" source="fe" target="br"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="w10" value="publish (AFTER_COMMIT @Async)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1;dashPattern=1 4;strokeColor=#D79B00;fontColor=#B46504" edge="1" parent="1" source="br" target="an"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="w11" value="publish" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1;dashPattern=1 4;strokeColor=#D79B00;fontColor=#B46504" edge="1" parent="1" source="br" target="pn"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="w12" value="enqueue (acteur)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#B9770E;fontColor=#9C640C" edge="1" parent="1" source="an" target="ns"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="w13" value="enqueue (citoyen)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#B9770E;fontColor=#9C640C" edge="1" parent="1" source="pn" target="ns"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="bStart" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366" vertex="1" parent="1">
+          <mxGeometry x="250" y="670" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bInstr" value="🧑‍💼 Instruction&lt;br&gt;&lt;span style=&quot;font-size:10px&quot;&gt;ROLE_INSTRUCTOR (pool)&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6" vertex="1" parent="1">
+          <mxGeometry x="320" y="655" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="bVal" value="✅ Validation&lt;br&gt;&lt;span style=&quot;font-size:10px&quot;&gt;assignee=${manager} (N+1)&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6" vertex="1" parent="1">
+          <mxGeometry x="570" y="655" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="bGw" value="outcome ?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656" vertex="1" parent="1">
+          <mxGeometry x="820" y="655" width="90" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="bEnd" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;strokeWidth=3" vertex="1" parent="1">
+          <mxGeometry x="960" y="670" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bp1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#566573" edge="1" parent="1" source="bStart" target="bInstr"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="bp2" value="complete → set ${manager}" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#566573;fontColor=#566573" edge="1" parent="1" source="bInstr" target="bVal"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="bp3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#566573" edge="1" parent="1" source="bVal" target="bGw"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="bp4" value="VALIDATE" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#27AE60;fontColor=#1E8449" edge="1" parent="1" source="bGw" target="bEnd"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="bp5" value="RETURN (rework)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#E67E22;fontColor=#BA4A00;exitX=0.5;exitY=1;entryX=0.5;entryY=1" edge="1" parent="1" source="bGw" target="bInstr"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+
+    This source code is the exclusive property of Zakaria El Kotb.
+    Unauthorized copying, modification, distribution, or use of this file,
+    via any medium, is strictly prohibited without the prior written
+    permission of the copyright owner.
+
+    Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ma.zakaria</groupId>
+        <artifactId>tadbir-budget</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>tadbir-budget-workflow</artifactId>
+    <name>tadbir-budget-workflow</name>
+    <description>Workflow engine — embeds the Flowable BPMN engine. Deploy BPMN process
+        definitions and drive human tasks (claim, complete, send-back) generically.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>ma.zakaria</groupId>
+            <artifactId>tadbir-budget-common</artifactId>
+        </dependency>
+        <!-- User/role directory: resolve a task's assignee / candidate groups to real users -->
+        <dependency>
+            <groupId>ma.zakaria</groupId>
+            <artifactId>tadbir-budget-dao</artifactId>
+        </dependency>
+        <!-- Send the generic "a task awaits you" notification to a task's assignee -->
+        <dependency>
+            <groupId>ma.zakaria</groupId>
+            <artifactId>tadbir-budget-notification</artifactId>
+        </dependency>
+
+        <!-- Flowable BPMN process engine (Spring Boot auto-configured) -->
+        <dependency>
+            <groupId>org.flowable</groupId>
+            <artifactId>flowable-spring-boot-starter-process</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

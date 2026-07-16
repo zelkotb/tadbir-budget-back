@@ -1,0 +1,68 @@
+<!--
+
+    Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+
+    This source code is the exclusive property of Zakaria El Kotb.
+    Unauthorized copying, modification, distribution, or use of this file,
+    via any medium, is strictly prohibited without the prior written
+    permission of the copyright owner.
+
+    Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+
+-->
+<configuration>
+
+    <!-- ── Human-readable file (rolling; written to the `logs` Docker volume) ────────────── -->
+    <appender name="FILE-HUMAN" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/var/log/tadbir-budget/application.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>/var/log/tadbir-budget/application.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{traceId:--}/%X{spanId:--}] [%X{username:-anonymous}] [%X{ip:--}] [%X{method:-}] [%X{uri:-}] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!--
+    ── ELK-ready JSON file (enable when ELK is deployed) ──────────────────
+
+    To enable:
+      1. Add to tadbir-budget-app/pom.xml:
+           <dependency>
+               <groupId>net.logstash.logback</groupId>
+               <artifactId>logstash-logback-encoder</artifactId>
+               <version>8.0</version>
+           </dependency>
+      2. Uncomment this appender and its <appender-ref> in the <root> block below.
+      3. Point Filebeat at /var/log/tadbir-budget/application.json
+         (Filebeat ships it to Logstash → Elasticsearch → Kibana / Elastic Security)
+
+    To switch to a different tool (Loki, Graylog…):
+      - Loki/Promtail: keep FILE-HUMAN, point Promtail at the .log file — no encoder change needed
+      - Graylog GELF: replace LogstashEncoder with net.logstash.logback.appender.LogstashTcpSocketAppender
+      - In all cases, MdcFilter and application log calls stay untouched.
+    -->
+    <!--
+    <appender name="FILE-JSON" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/var/log/tadbir-budget/application.json</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>/var/log/tadbir-budget/application.%d{yyyy-MM-dd}.json</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"app":"tadbir-budget","env":"prod"}</customFields>
+        </encoder>
+    </appender>
+    -->
+
+    <root level="INFO">
+        <appender-ref ref="FILE-HUMAN"/>
+        <!-- <appender-ref ref="FILE-JSON"/> -->
+    </root>
+
+    <logger name="org.springframework" level="WARN"/>
+
+</configuration>

@@ -1,0 +1,93 @@
+# Backend-side stack, all on one host:
+#   postgres  +  backend (Spring Boot).
+# The frontend is deployed separately (host networking, proxies /api -> 127.0.0.1:8080).
+#
+# Fixed project name so volumes (DB, files) are SHARED across version folders and survive
+# redeploys. `docker compose up -d` recreates only the services that changed — deploying a new
+# backend version does NOT recreate postgres, and never drops the data volumes.
+#
+# Application logs are written to /opt/log/<name> on the host (bind mounts). Docker's own json
+# logs are size-capped via install-docker.sh (10 MB x 5).
+name: tadbir
+
+services:
+
+  # ── Database ────────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16
+    container_name: tadbir-postgres
+    restart: unless-stopped
+    command:
+      - postgres
+      - -c
+      - shared_buffers=512MB
+      - -c
+      - logging_collector=on
+      - -c
+      - log_directory=/var/log/postgresql
+      - -c
+      - log_filename=postgresql-%Y-%m-%d.log
+      - -c
+      - log_rotation_age=1d
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data          # named volume — persists across redeploys
+      - /opt/log/postgres:/var/log/postgresql    # logs on the host
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME} -d ${DATABASE_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:       { memory: 2g }
+        reservations: { memory: 512m }
+
+  # ── Application (Spring Boot API) ────────────────────────────────────────────
+  backend:
+    image: tadbir-backend:${BACKEND_VERSION:-1.0.0}
+    container_name: tadbir-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      APP_PORT: 8080
+      MAX_THREADS: 200
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${DATABASE_NAME}
+      DATABASE_USERNAME: ${DATABASE_USERNAME}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      MIN_IDLE: 5
+      MAX_IDLE: 20
+      JWT_SECRET: ${JWT_SECRET}
+      FILES_BASE_PATH: /data/files
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      APP_COOKIE_SECURE: ${APP_COOKIE_SECURE:-false}
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+    ports:
+      - "127.0.0.1:8080:8080"                    # localhost only — reachable from the frontend, not the LAN
+    volumes:
+      - files:/data/files
+      - /opt/log/tadbir-budget-backend:/var/log/tadbir-budget
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    deploy:
+      resources:
+        limits: { memory: 3g }
+
+volumes:
+  pgdata:
+  files:

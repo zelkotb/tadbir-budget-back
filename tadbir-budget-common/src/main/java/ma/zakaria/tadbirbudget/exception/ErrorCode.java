@@ -1,0 +1,90 @@
+/*
+ * Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+ *
+ * This source code is the exclusive property of Zakaria El Kotb.
+ * Unauthorized copying, modification, distribution, or use of this file,
+ * via any medium, is strictly prohibited without the prior written
+ * permission of the copyright owner.
+ *
+ * Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+ */
+package ma.zakaria.tadbirbudget.exception;
+
+/**
+ * Machine-readable error codes returned in every error response.
+ * The frontend maps these to localised user messages.
+ */
+public enum ErrorCode {
+
+    // ── Authentication ───────────────────────────────────────────────────────
+    EMAIL_ALREADY_EXISTS,
+    INVALID_CREDENTIALS,
+    ACCOUNT_DISABLED,
+    USER_NOT_FOUND,
+    INVALID_ROLE,
+
+    // ── Refresh token ────────────────────────────────────────────────────────
+    REFRESH_TOKEN_MISSING,
+    REFRESH_TOKEN_INVALID,
+    REFRESH_TOKEN_REVOKED,
+    REFRESH_TOKEN_EXPIRED,
+
+    // ── Input validation — top-level ────────────────────────────────────────
+    VALIDATION_ERROR,
+    INVALID_REQUEST_BODY,
+
+    // ── Input validation — per-field codes (used in fieldErrors map) ─────────
+    REQUIRED,
+    INVALID_EMAIL,
+    INVALID_SIZE,
+    OUT_OF_RANGE,
+    INVALID_FORMAT,
+    MUST_BE_POSITIVE,
+    MUST_BE_NEGATIVE,
+    MUST_BE_FUTURE,
+    MUST_BE_PAST,
+    INVALID_VALUE,
+
+    // ── HTTP / Security ──────────────────────────────────────────────────────
+    ACCESS_DENIED,
+    RESOURCE_NOT_FOUND,
+    METHOD_NOT_ALLOWED,
+    RATE_LIMIT_EXCEEDED,
+    WEAK_PASSWORD,
+
+    // ── Workflow ─────────────────────────────────────────────────────────────
+    PROCESS_NOT_FOUND,
+    PROCESS_CODE_ALREADY_EXISTS,
+    PROCESS_VERSION_NOT_FOUND,
+    NO_PUBLISHED_VERSION,
+    VERSION_NOT_EDITABLE,
+    WORKFLOW_HAS_NO_STEPS,
+    STEP_INSTANCE_NOT_FOUND,
+    NOT_AN_APPROVER,
+    INVALID_WORKFLOW_STATE,
+    TASK_NOT_RESERVED,
+    INVALID_REVIEW_STATUS,
+
+    // ── Notification ─────────────────────────────────────────────────────────
+    NOTIFICATION_NOT_FOUND,
+
+    // ── Plan d'aménagement requests ──────────────────────────────────────────
+    PA_REQUEST_NOT_FOUND,
+    PA_SUB_REQUEST_NOT_FOUND,
+    NOT_REQUEST_OWNER,
+    REQUEST_HAS_NO_SUB_REQUESTS,
+    REQUEST_NOT_EDITABLE,
+    CHANGES_FROZEN,
+    CHANGE_FREEZE_REQUIRED,
+
+    // ── Files ────────────────────────────────────────────────────────────────
+    FILE_EMPTY,
+    FILE_TOO_LARGE,
+    FILE_TYPE_NOT_ALLOWED,
+    FILE_NOT_FOUND,
+    INVALID_FILE_PATH,
+    FILE_STORAGE_ERROR,
+
+    // ── Generic ──────────────────────────────────────────────────────────────
+    INTERNAL_ERROR
+}

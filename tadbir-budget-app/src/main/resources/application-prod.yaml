@@ -1,0 +1,45 @@
+#
+# Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+#
+# This source code is the exclusive property of Zakaria El Kotb.
+# Unauthorized copying, modification, distribution, or use of this file,
+# via any medium, is strictly prohibited without the prior written
+# permission of the copyright owner.
+#
+# Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+#
+
+server:
+  port: ${APP_PORT}
+  tomcat:
+    max-threads: ${MAX_THREADS}
+
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    hikari:
+      minimum-idle: ${MIN_IDLE}
+      maximum-pool-size: ${MAX_IDLE}
+  liquibase:
+    contexts: prod
+
+management:
+  endpoint:
+    health:
+      show-details: never   # never expose DB/disk details to anonymous users
+
+lockout:
+  max-attempts: ${LOCKOUT_MAX_ATTEMPTS:5}
+
+rate-limit:
+  enabled: ${RATE_LIMIT_ENABLED:true}
+  auth:
+    capacity: ${RATE_LIMIT_AUTH_CAPACITY:5}
+    refill-tokens: ${RATE_LIMIT_AUTH_REFILL_TOKENS:5}
+    refill-seconds: ${RATE_LIMIT_AUTH_REFILL_SECONDS:60}
+  api:
+    capacity: ${RATE_LIMIT_API_CAPACITY:100}
+    refill-tokens: ${RATE_LIMIT_API_REFILL_TOKENS:100}
+    refill-seconds: ${RATE_LIMIT_API_REFILL_SECONDS:60}
