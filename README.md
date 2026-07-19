@@ -18,7 +18,7 @@ tadbir-budget-back/
 ├── tadbir-budget-dao/           Persistence: entities, repositories, Liquibase, Envers audit
 ├── tadbir-budget-auth-jwt/      JWT authentication + Spring Security config
 ├── tadbir-budget-user/          User management (CRUD, password, roles, Envers diff audit)
-├── tadbir-budget-files/         Generic file storage (backend-owned paths, traversal-safe), Excel/PDF
+├── tadbir-budget-files/         Generic file storage (traversal-safe), Excel/PDF/JasperReports export
 ├── tadbir-budget-notification/  Durable notification queue (e-mail + in-app), dispatcher, templating
 ├── tadbir-budget-workflow/      Flowable engine wrapper: runtime API, listeners, event bridge
 └── tadbir-budget-app/           Deployable fat JAR — assembles all modules, config, logging, filters
@@ -57,6 +57,7 @@ app ← all of the above
 | Observability | Micrometer OTel (traceId/spanId in every log line); central `ControllerLoggingAspect` |
 | Rate limiting | Bucket4j 8.10 (token-bucket) + Caffeine (per-IP) |
 | File storage | Local filesystem, backend-decided paths, path-traversal hardened |
+| Reporting / export | Apache POI (`.xlsx`), Flying Saucer (HTML→PDF), JasperReports 6.21 (`.jrxml`→PDF) |
 | Build | Maven multi-module |
 
 ---
@@ -76,8 +77,8 @@ app ← all of the above
 - **Workflow** — embedded Flowable engine wrapper with a runtime/definition REST API, assignment
   listeners (sticky, load-balancing, hierarchy resolution) and an event bridge that turns task
   events into notifications. Drop a `*.bpmn20.xml` under `resources/processes/` to deploy it.
-- **Files** — traversal-safe local storage with backend-owned layout, plus Excel export and
-  HTML→PDF (Flying Saucer) helpers.
+- **Files & reports** — traversal-safe local storage with backend-owned layout, plus Excel export,
+  HTML→PDF (Flying Saucer) and designed **JasperReports** (`.jrxml`→PDF) helpers.
 - **Auditing** — Hibernate Envers field-level history with a custom revision entity capturing the
   acting user's uid and IP.
 

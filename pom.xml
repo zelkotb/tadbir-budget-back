@@ -54,6 +54,7 @@
         <shedlock.version>5.16.0</shedlock.version>
         <flowable.version>7.1.0</flowable.version>
         <flyingsaucer.version>9.4.0</flyingsaucer.version>
+        <jasperreports.version>6.21.3</jasperreports.version>
     </properties>
 
     <dependencyManagement>
@@ -166,6 +167,15 @@
                 <groupId>org.xhtmlrenderer</groupId>
                 <artifactId>flying-saucer-pdf-openpdf</artifactId>
                 <version>${flyingsaucer.version}</version>
+            </dependency>
+
+            <!-- JasperReports: designed/pixel-perfect reports (.jrxml) -> PDF. Used by
+                 JasperReportService. The 6.21.x line bundles the PDF exporter (no separate
+                 artifact) and the SAX .jrxml compiler. -->
+            <dependency>
+                <groupId>net.sf.jasperreports</groupId>
+                <artifactId>jasperreports</artifactId>
+                <version>${jasperreports.version}</version>
             </dependency>
 
             <!-- Test: embedded LDAP -->

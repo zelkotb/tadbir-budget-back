@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Sample JasperReports template for the tadbir-budget base project.
+
+    Rendered by JasperReportService.toPdf("reports/sample-users.jrxml", params, rows) where:
+      - params : { "REPORT_TITLE": "Users" }  ($P{...})
+      - rows   : any collection of beans exposing getUid()/getFullName()/getEmail()/getRoles()
+                 (the <field> names below). getRoles() may return a String or a List — it is
+                 rendered via String.valueOf(...).
+
+    Replace this with your own designed reports (e.g. authored in Jaspersoft Studio).
+-->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="sample-users" pageWidth="595" pageHeight="842"
+              columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+
+    <parameter name="REPORT_TITLE" class="java.lang.String"/>
+
+    <field name="uid" class="java.lang.String"/>
+    <field name="fullName" class="java.lang.String"/>
+    <field name="email" class="java.lang.String"/>
+    <field name="roles" class="java.lang.Object"/>
+
+    <title>
+        <band height="44">
+            <textField>
+                <reportElement x="0" y="0" width="555" height="28"/>
+                <textElement><font size="18" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$P{REPORT_TITLE}]]></textFieldExpression>
+            </textField>
+            <line>
+                <reportElement x="0" y="34" width="555" height="1"/>
+            </line>
+        </band>
+    </title>
+
+    <columnHeader>
+        <band height="20">
+            <staticText>
+                <reportElement x="0" y="0" width="95" height="18"/>
+                <textElement><font isBold="true"/></textElement>
+                <text><![CDATA[UID]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="95" y="0" width="150" height="18"/>
+                <textElement><font isBold="true"/></textElement>
+                <text><![CDATA[Full name]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="245" y="0" width="200" height="18"/>
+                <textElement><font isBold="true"/></textElement>
+                <text><![CDATA[Email]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="445" y="0" width="110" height="18"/>
+                <textElement><font isBold="true"/></textElement>
+                <text><![CDATA[Roles]]></text>
+            </staticText>
+        </band>
+    </columnHeader>
+
+    <detail>
+        <band height="18">
+            <textField>
+                <reportElement x="0" y="0" width="95" height="16"/>
+                <textFieldExpression><![CDATA[$F{uid}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="95" y="0" width="150" height="16"/>
+                <textFieldExpression><![CDATA[$F{fullName}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="245" y="0" width="200" height="16"/>
+                <textFieldExpression><![CDATA[$F{email}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="445" y="0" width="110" height="16"/>
+                <textFieldExpression><![CDATA[String.valueOf($F{roles})]]></textFieldExpression>
+            </textField>
+        </band>
+    </detail>
+
+    <pageFooter>
+        <band height="20">
+            <textField>
+                <reportElement x="455" y="4" width="100" height="14"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression>
+            </textField>
+        </band>
+    </pageFooter>
+
+</jasperReport>

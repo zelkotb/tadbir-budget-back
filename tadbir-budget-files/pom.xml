@@ -49,10 +49,22 @@
             <artifactId>flying-saucer-pdf-openpdf</artifactId>
         </dependency>
 
+        <!-- JasperReports: designed .jrxml reports -> PDF (JasperReportService), reusable. -->
+        <dependency>
+            <groupId>net.sf.jasperreports</groupId>
+            <artifactId>jasperreports</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
