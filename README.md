@@ -67,8 +67,9 @@ app ← all of the above
 - **JWT authentication** — login/refresh/logout by **uid**, refresh-token rotation, account lockout
   on repeated failures, `auth_audit` event log. Accounts are created by an admin (no self sign-up).
 - **Authorization** — role-based method security via `@PreAuthorize` and the `Roles` catalogue:
-  a technical `ROLE_ADMIN` plus the organisation hierarchy `ROLE_EMPLOYEE`, `ROLE_DEPARTMENT_MANAGER`,
-  `ROLE_DIRECTION_MANAGER`, `ROLE_POLE_MANAGER`, `ROLE_DIRECTION_GENERALE` (swap for your own).
+  a technical `ROLE_ADMIN`, the organisation hierarchy `ROLE_EMPLOYEE`, `ROLE_DEPARTMENT_MANAGER`,
+  `ROLE_DIRECTION_MANAGER`, `ROLE_POLE_MANAGER`, `ROLE_DIRECTION_GENERALE`, and `ROLE_CONTROLE_GESTION`
+  (swap for your own).
 - **Rate limiting** — per-IP token bucket (`RateLimitFilter`), configurable and toggleable per profile.
 - **Structured logging** — MDC filter stamps request/trace ids; `ControllerLoggingAspect` logs every
   controller call; Logback profiles per environment; OTel trace/span ids in each line.

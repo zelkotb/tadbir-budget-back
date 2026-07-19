@@ -16,18 +16,16 @@ import lombok.experimental.UtilityClass;
 public final class Roles {
 
     // ── Authority strings (stored in DB / GrantedAuthority) ───────────────────
-    //
-    // ADMIN is a technical role (user management, audit, workflow deployment). The others are
-    // the organisation hierarchy, lowest to highest. Naming convention: no role name may be a
+    // Naming convention: no role name may be a
     // substring of another (the roles column is a CSV matched with LIKE — see UserRepository).
 
-    /** Technical administrator: creates/manages users, reads audit logs, deploys workflows. */
     public final String ADMIN               = "ROLE_ADMIN";
     public final String EMPLOYEE            = "ROLE_EMPLOYEE";
     public final String DEPARTMENT_MANAGER  = "ROLE_DEPARTMENT_MANAGER";
     public final String DIRECTION_MANAGER   = "ROLE_DIRECTION_MANAGER";
     public final String POLE_MANAGER        = "ROLE_POLE_MANAGER";
     public final String DIRECTION_GENERALE  = "ROLE_DIRECTION_GENERALE";
+    public final String CONTROLE_GESTION    = "ROLE_CONTROLE_GESTION";
 
     // ── @PreAuthorize SpEL expressions ────────────────────────────────────────
 
@@ -37,6 +35,7 @@ public final class Roles {
     public final String IS_DIRECTION_MANAGER   = "hasRole('DIRECTION_MANAGER')";
     public final String IS_POLE_MANAGER        = "hasRole('POLE_MANAGER')";
     public final String IS_DIRECTION_GENERALE  = "hasRole('DIRECTION_GENERALE')";
+    public final String IS_CONTROLE_GESTION    = "hasRole('CONTROLE_GESTION')";
 
     /**
      * Any authenticated business user may take part in a workflow — each BPMN decides, via its
@@ -44,5 +43,6 @@ public final class Roles {
      * workflow runtime API open to every real user role.
      */
     public final String IS_WORKFLOW_ACTOR = "hasAnyRole('ADMIN', 'EMPLOYEE', "
-            + "'DEPARTMENT_MANAGER', 'DIRECTION_MANAGER', 'POLE_MANAGER', 'DIRECTION_GENERALE')";
+            + "'DEPARTMENT_MANAGER', 'DIRECTION_MANAGER', 'POLE_MANAGER', 'DIRECTION_GENERALE', "
+            + "'CONTROLE_GESTION')";
 }

@@ -18,7 +18,7 @@ Shared contracts used by every module. Contains no business logic and no Spring 
 
 | Class | Purpose |
 |---|---|
-| `Roles` | Authority strings — technical `ROLE_ADMIN` plus the org hierarchy (`ROLE_EMPLOYEE`, `ROLE_DEPARTMENT_MANAGER`, `ROLE_DIRECTION_MANAGER`, `ROLE_POLE_MANAGER`, `ROLE_DIRECTION_GENERALE`) — and the matching `@PreAuthorize` SpEL constants. **Convention:** role names must never be a prefix or substring of another role name — this ensures `LIKE '%ROLE_X%'` queries are unambiguous. |
+| `Roles` | Authority strings — technical `ROLE_ADMIN`, the org hierarchy (`ROLE_EMPLOYEE`, `ROLE_DEPARTMENT_MANAGER`, `ROLE_DIRECTION_MANAGER`, `ROLE_POLE_MANAGER`, `ROLE_DIRECTION_GENERALE`) and `ROLE_CONTROLE_GESTION` — and the matching `@PreAuthorize` SpEL constants. **Convention:** role names must never be a prefix or substring of another role name — this ensures `LIKE '%ROLE_X%'` queries are unambiguous. |
 
 ### `enums/`
 

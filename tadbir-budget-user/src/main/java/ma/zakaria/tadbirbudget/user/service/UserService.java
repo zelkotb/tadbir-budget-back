@@ -42,7 +42,7 @@ public class UserService {
     /** Roles an admin may assign when creating/updating an account. */
     private static final Set<String> ASSIGNABLE_ROLES = Set.of(
             Roles.ADMIN, Roles.EMPLOYEE, Roles.DEPARTMENT_MANAGER, Roles.DIRECTION_MANAGER,
-            Roles.POLE_MANAGER, Roles.DIRECTION_GENERALE);
+            Roles.POLE_MANAGER, Roles.DIRECTION_GENERALE, Roles.CONTROLE_GESTION);
 
     private final UserRepository  userRepository;
     private final PasswordEncoder passwordEncoder;

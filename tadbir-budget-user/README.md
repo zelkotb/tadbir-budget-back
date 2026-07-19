@@ -29,7 +29,8 @@ User management feature module. Handles admin-driven user creation, password cha
 ```
 
 `uid` is the login identifier (unique). Assignable roles: `ROLE_ADMIN`, `ROLE_EMPLOYEE`,
-`ROLE_DEPARTMENT_MANAGER`, `ROLE_DIRECTION_MANAGER`, `ROLE_POLE_MANAGER`, `ROLE_DIRECTION_GENERALE`.
+`ROLE_DEPARTMENT_MANAGER`, `ROLE_DIRECTION_MANAGER`, `ROLE_POLE_MANAGER`, `ROLE_DIRECTION_GENERALE`,
+`ROLE_CONTROLE_GESTION`.
 Any other value returns `INVALID_ROLE`; a duplicate `uid`/`email` returns `UID_ALREADY_EXISTS` /
 `EMAIL_ALREADY_EXISTS`.
 
