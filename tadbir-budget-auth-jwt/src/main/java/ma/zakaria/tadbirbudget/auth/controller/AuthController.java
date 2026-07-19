@@ -17,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import ma.zakaria.tadbirbudget.auth.dto.AuthRequestContext;
 import ma.zakaria.tadbirbudget.auth.dto.LoginInput;
 import ma.zakaria.tadbirbudget.auth.dto.RefreshOutput;
-import ma.zakaria.tadbirbudget.auth.dto.SignupInput;
 import ma.zakaria.tadbirbudget.auth.service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,14 +34,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
-
-    @PostMapping("/signup")
-    public ResponseEntity<RefreshOutput> signup(
-            @Valid @RequestBody SignupInput input,
-            HttpServletRequest request,
-            HttpServletResponse response) {
-        return ResponseEntity.ok(authService.signup(input, response, AuthRequestContext.from(request)));
-    }
 
     @PostMapping("/login")
     public ResponseEntity<RefreshOutput> login(

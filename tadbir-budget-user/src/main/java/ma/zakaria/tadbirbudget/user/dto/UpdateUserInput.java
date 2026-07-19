@@ -29,6 +29,9 @@ import java.util.UUID;
 @Data
 public class UpdateUserInput {
 
+    @Size(min = 1, max = 100)
+    private String uid;
+
     @Email
     @Size(max = 255)
     private String email;
@@ -37,13 +40,7 @@ public class UpdateUserInput {
     private String fullName;
 
     @Size(min = 1, max = 20)
-    private String cin;
-
-    @Size(min = 1, max = 20)
     private String phoneNumber;
-
-    @Size(max = 255)
-    private String address;
 
     private List<String> roles;
 

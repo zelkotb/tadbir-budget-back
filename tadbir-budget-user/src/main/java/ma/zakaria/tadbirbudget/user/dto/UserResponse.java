@@ -17,11 +17,10 @@ import java.util.UUID;
 
 public record UserResponse(
         UUID            id,
+        String          uid,
         String          fullName,
         String          email,
-        String          cin,
         String          phoneNumber,
-        String          address,
         List<String>    roles,
         boolean         enabled,
         int             failedLoginAttempts,
@@ -30,11 +29,10 @@ public record UserResponse(
     public static UserResponse from(User user) {
         return new UserResponse(
                 user.getId(),
+                user.getUid(),
                 user.getFullName(),
                 user.getEmail(),
-                user.getCin(),
                 user.getPhoneNumber(),
-                user.getAddress(),
                 user.getRoles(),
                 user.isEnabled(),
                 user.getFailedLoginAttempts(),

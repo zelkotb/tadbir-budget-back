@@ -10,10 +10,10 @@ Persistence layer. Owns everything database-related: JPA entities, Spring Data r
 
 | Class | Table | Audited | Description |
 |---|---|---|---|
-| `User` | `users` | ✓ `@Audited` | Application user, implements `UserDetails`. Roles stored as CSV via `StringListConverter`. |
+| `User` | `users` | ✓ `@Audited` | Application user, implements `UserDetails`. Logs in with `uid`; roles stored as CSV via `StringListConverter`. |
 | `RefreshToken` | `refresh_tokens` | — | Refresh token linked to a user |
 | `AuthAudit` | `auth_audit` | — | Append-only auth event log (LOGIN/LOGOUT/TOKEN_REFRESH) |
-| `RevInfo` | `revinfo` | — | Custom Envers revision entity — stores email + IP of who made the change |
+| `RevInfo` | `revinfo` | — | Custom Envers revision entity — stores the actor (uid) + IP of who made the change |
 
 ### Enums (`entity/enums/`)
 
@@ -26,13 +26,13 @@ Persistence layer. Owns everything database-related: JPA entities, Spring Data r
 
 | Class | Purpose |
 |---|---|
-| `CustomRevisionListener` | Implements `RevisionListener` — populates `RevInfo` with the actor's email and IP on every Envers revision. Priority: MDC `revisionActorEmail` key first (covers self-registration), then `SecurityContextHolder`, then `"system"`. |
+| `CustomRevisionListener` | Implements `RevisionListener` — populates `RevInfo` with the actor's uid and IP on every Envers revision. Reads the uid from `SecurityContextHolder`, falling back to `"system"` for unauthenticated / batch operations. |
 
 ### Repositories (`repository/`)
 
 | Interface | Entity | Notes |
 |---|---|---|
-| `UserRepository` | `User` | `findByEmail`, `existsByEmail` |
+| `UserRepository` | `User` | `findByUid`, `existsByUid`, `existsByEmail`, `findByRoleContaining`, `findStaff` |
 | `RefreshTokenRepository` | `RefreshToken` | `findByToken`, `deleteExpiredTokens` |
 | `AuthAuditRepository` | `AuthAudit` | extends `JpaSpecificationExecutor` for dynamic filtering |
 
@@ -47,18 +47,14 @@ Persistence layer. Owns everything database-related: JPA entities, Spring Data r
 ```
 master.xml
 └── slave/
-    ├── 2026_05_24.xml   pgcrypto extension
-    ├── 2026_05_25.xml   users, refresh_tokens tables
-    ├── 2026_05_30.xml   enabled flag + admin seed
-    ├── 2026_06_03.xml   auth_audit table + indexes
-    ├── 2026_06_04.xml   auth_audit ip_address + event_type indexes
-    ├── 2026_06_05.xml   migrate user_roles → users.roles column,
-    │                    drop user_roles table,
-    │                    revinfo + users_audit tables
-    └── 2026_06_06.xml   revinfo + users_audit search indexes
+    └── 2026_07_17_baseline.xml   pgcrypto + pg_trgm, revinfo, users (+ audit),
+                                  seed admin (uid=pm.admin), refresh_tokens,
+                                  auth_audit, notification (+ audit), shedlock
 ```
 
-Changelogs live in this module's JAR resources. `LiquibaseAutoConfiguration` finds `classpath:db/changelog/master.xml` automatically.
+A single clean baseline creates every reusable table. Changelogs live in this module's JAR
+resources; `LiquibaseAutoConfiguration` finds `classpath:db/changelog/master.xml` automatically.
+**Never edit a deployed changeset — add a new dated one** (e.g. `slave/2026_08_01.xml`).
 
 ---
 
@@ -75,7 +71,7 @@ store_data_at_delete: true
 
 | Table | Description |
 |---|---|
-| `revinfo` | One row per revision: auto-inc `id`, `timestamp` (epoch ms), `email`, `ip_address` |
+| `revinfo` | One row per revision: auto-inc `id`, `timestamp` (epoch ms), `actor` (uid), `ip_address` |
 | `users_audit` | User state at each revision: `id` + `rev` PK, `revtype` (0=CREATE, 1=UPDATE, 2=DELETE), all non-`@NotAudited` user columns |
 
 `password` is `@NotAudited` — never stored in the audit table.

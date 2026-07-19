@@ -18,7 +18,7 @@ import java.util.UUID;
 
 public record AuthAuditResponse(
         UUID          id,
-        String        email,
+        String        actor,
         AuthEventType eventType,
         boolean       success,
         String        ipAddress,
@@ -28,7 +28,7 @@ public record AuthAuditResponse(
     public static AuthAuditResponse from(AuthAudit audit) {
         return new AuthAuditResponse(
                 audit.getId(),
-                audit.getEmail(),
+                audit.getActor(),
                 audit.getEventType(),
                 audit.isSuccess(),
                 audit.getIpAddress(),

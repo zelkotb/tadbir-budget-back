@@ -36,19 +36,18 @@ public class User implements UserDetails {
     @Column(columnDefinition = "uuid")
     private UUID id;
 
-    @Column(nullable = false)
-    private String fullName;
+    /** Login identifier (e.g. {@code p.admin}). Unique — this is what the user authenticates with. */
+    @Column(nullable = false, unique = true)
+    private String uid;
 
     @Column(nullable = false)
-    private String cin;
+    private String fullName;
 
     @Column(nullable = false)
     private String phoneNumber;
 
     @Column(nullable = false, unique = true)
     private String email;
-
-    private String address;
 
     /**
      * This user's direct superior in the validation hierarchy (their "N+1"), or null at
@@ -93,7 +92,7 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() {
-        return email;
+        return uid;
     }
 
     @Override public boolean isAccountNonExpired()     { return true; }

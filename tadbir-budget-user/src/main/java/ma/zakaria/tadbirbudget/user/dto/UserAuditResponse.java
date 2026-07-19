@@ -26,11 +26,10 @@ public record UserAuditResponse(
         String         performedFrom,
         AuditAction    action,
         UUID           userId,
+        String         uid,
         String         email,
         String         fullName,
-        String         cin,
         String         phoneNumber,
-        String         address,
         boolean        enabled,
         List<String>   roles
 ) {
@@ -43,15 +42,14 @@ public record UserAuditResponse(
         return new UserAuditResponse(
                 rev.getId(),
                 Instant.ofEpochMilli(rev.getTimestamp()),
-                rev.getEmail(),
+                rev.getActor(),
                 rev.getIp(),
                 action,
                 user != null ? user.getId()              : null,
+                user != null ? user.getUid()             : null,
                 user != null ? user.getEmail()           : null,
                 user != null ? user.getFullName()        : null,
-                user != null ? user.getCin()             : null,
                 user != null ? user.getPhoneNumber()     : null,
-                user != null ? user.getAddress()         : null,
                 user != null && user.isEnabled(),
                 user != null ? user.getRoles()           : List.of()
         );

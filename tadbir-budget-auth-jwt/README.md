@@ -10,19 +10,21 @@ This module is **one possible implementation** of the authentication contract. S
 
 ### Controllers (`auth/controller/`)
 
-| Endpoint | Method | Public |
-|---|---|---|
-| `/api/v1/auth/signup` | POST | ✓ |
-| `/api/v1/auth/login` | POST | ✓ |
-| `/api/v1/auth/refresh` | POST | ✓ |
-| `/api/v1/auth/logout` | POST | ✓ |
-| `/api/v1/auth/audit` | GET | Admin only (`@PreAuthorize(Roles.IS_ADMIN)`) |
+| Endpoint | Method | Public | Body |
+|---|---|---|---|
+| `/api/v1/auth/login` | POST | ✓ | `{ "uid": "p.admin", "password": "..." }` |
+| `/api/v1/auth/refresh` | POST | ✓ | — (refresh-token cookie) |
+| `/api/v1/auth/logout` | POST | ✓ | — (refresh-token cookie) |
+| `/api/v1/auth/audit` | GET | Admin only (`@PreAuthorize(Roles.IS_ADMIN)`) | — |
+
+Login uses the user's **uid** (e.g. `p.admin`), not email. There is no self sign-up — accounts are
+created by an admin through `POST /api/v1/user` (`tadbir-budget-user`).
 
 ### Services (`auth/service/`)
 
 | Service | Responsibility |
 |---|---|
-| `AuthService` | signup, login, refresh, logout flows |
+| `AuthService` | login, refresh, logout flows |
 | `RefreshTokenService` | create / rotate / revoke refresh tokens |
 | `AuthAuditService` | record success + failure events; query the audit log |
 
@@ -32,7 +34,7 @@ This module is **one possible implementation** of the authentication contract. S
 |---|---|
 | `JwtService` | generate and validate JWT tokens |
 | `JwtAuthFilter` | `OncePerRequestFilter` — extracts Bearer token, sets `SecurityContext` |
-| `CustomUserDetailsService` | loads `User` by email for Spring Security |
+| `CustomUserDetailsService` | loads `User` by uid for Spring Security |
 | `SecurityConfig` | `SecurityFilterChain` bean — the entry point Spring Security uses |
 
 ### Audit events (`auth/event/`)
@@ -53,7 +55,7 @@ POST /login
       → JwtService.generateToken(user)         creates access token (15 min)
       → RefreshTokenService.create(userId)     creates refresh token (7 days)
       → Response: { jwt } + HttpOnly cookie(refreshToken)
-      → AuthAuditService.recordSuccess(email, LOGIN, ctx)
+      → AuthAuditService.recordSuccess(uid, LOGIN, ctx)
           → publishes AuthAuditEvent
               → AuthAuditListener persists to auth_audit after commit (async)
 ```

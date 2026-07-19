@@ -74,12 +74,12 @@ public class LoadBalancingAssignmentListener implements TaskListener {
 
         User chosen = candidates.values().stream()
                 .min(Comparator.comparingLong(u -> taskService.createTaskQuery()
-                        .taskAssignee(u.getEmail()).count()))
+                        .taskAssignee(u.getUid()).count()))
                 .orElseThrow();
-        task.setAssignee(chosen.getEmail());
+        task.setAssignee(chosen.getUid());
         // Remember the choice so a loop back to this step re-assigns the same person.
         task.setVariable(task.getTaskDefinitionKey() + CompleterCaptureListener.ASSIGNEE_VARIABLE_SUFFIX,
-                chosen.getEmail());
-        log.debug("Load-balanced task {} to {}", task.getTaskDefinitionKey(), chosen.getEmail());
+                chosen.getUid());
+        log.debug("Load-balanced task {} to {}", task.getTaskDefinitionKey(), chosen.getUid());
     }
 }

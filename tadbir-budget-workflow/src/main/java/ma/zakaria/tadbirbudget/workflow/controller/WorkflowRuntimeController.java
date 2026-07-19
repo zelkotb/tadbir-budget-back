@@ -31,11 +31,10 @@ import java.util.List;
 /**
  * Generic runtime API across every BPMN workflow: start an instance, the personal task
  * inbox, claim/unclaim (reservation), and complete (forward / send-back). Users are keyed
- * by email; candidate groups are the caller's role authorities.
+ * by uid; candidate groups are the caller's role authorities.
  *
- * <p>Restricted to workflow actors (instructor / pôle-directeur / admin) — citizens never act
- * on tasks directly. Fine-grained "who may claim <em>this</em> task" is enforced per-task by
- * the service from the BPMN candidate groups.
+ * <p>Open to every authenticated business role — fine-grained "who may claim <em>this</em>
+ * task" is enforced per-task by the service from the BPMN candidate groups.
  */
 @RestController
 @RequestMapping("/api/v1/workflow")
@@ -113,7 +112,7 @@ public class WorkflowRuntimeController {
     }
 
     private String currentUserId() {
-        return SecurityUtils.getCurrentUserEmail();
+        return SecurityUtils.getCurrentUsername();
     }
 
     private List<String> currentGroups() {

@@ -21,7 +21,7 @@ import java.util.UUID;
 @Table(
     name = "`auth_audit`",
     indexes = {
-        @Index(name = "idx_auth_audit_email",       columnList = "email"),
+        @Index(name = "idx_auth_audit_actor",       columnList = "actor"),
         @Index(name = "idx_auth_audit_ip_address",  columnList = "ip_address"),
         @Index(name = "idx_auth_audit_event_type",  columnList = "event_type"),
         @Index(name = "idx_auth_audit_occurred_at", columnList = "occurred_at")
@@ -45,9 +45,9 @@ public class AuthAudit {
     @Column(nullable = false)
     private boolean success;
 
-    /** Email used in the auth attempt. Null only for TOKEN_REFRESH failures with an unresolvable token. */
-    @Column(length = 255)
-    private String email;
+    /** Login identifier (uid) used in the auth attempt. Null only for TOKEN_REFRESH failures with an unresolvable token. */
+    @Column(name = "actor", length = 255)
+    private String actor;
 
     @Column(name = "ip_address", length = 45)
     private String ipAddress;

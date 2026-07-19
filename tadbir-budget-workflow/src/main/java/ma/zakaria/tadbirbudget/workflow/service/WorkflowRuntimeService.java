@@ -12,7 +12,6 @@ package ma.zakaria.tadbirbudget.workflow.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import ma.zakaria.tadbirbudget.constant.Roles;
 import ma.zakaria.tadbirbudget.entity.User;
 import ma.zakaria.tadbirbudget.exception.CustomException;
 import ma.zakaria.tadbirbudget.exception.ErrorCode;
@@ -65,8 +64,8 @@ import java.util.stream.Collectors;
 /**
  * Drive running processes through Flowable: start an instance, read a user's task inbox,
  * claim / release a task (reservation), and complete it (forward or send-back via the
- * task variables). Users are identified by their {@code email}; candidate groups are the
- * caller's role authorities (e.g. {@code ROLE_INSTRUCTOR}).
+ * task variables). Users are identified by their {@code uid}; candidate groups are the
+ * caller's role authorities (e.g. {@code ROLE_DEPARTMENT_MANAGER}).
  */
 @Slf4j
 @Service
@@ -149,15 +148,13 @@ public class WorkflowRuntimeService {
     }
 
     /**
-     * Release a claimed task back to its candidate pool. Only an <b>instructor</b> may unclaim, and
-     * only their own task — a deliberate restriction (validators/commission don't release; admins
-     * use {@link #reassign(String, UUID)} instead).
+     * Release a claimed task back to its candidate pool. A user may unclaim only their own task;
+     * admins re-route a task with {@link #reassign(String, UUID)} instead.
      */
     @Transactional
     public void unclaim(String taskId, String userId, Collection<String> callerRoles) {
         Task task = loadTask(taskId);
-        boolean instructor = callerRoles != null && callerRoles.contains(Roles.INSTRUCTOR);
-        if (!instructor || !Objects.equals(task.getAssignee(), userId)) {
+        if (!Objects.equals(task.getAssignee(), userId)) {
             throw new CustomException(ErrorCode.ACCESS_DENIED, HttpStatus.FORBIDDEN);
         }
         taskService.unclaim(taskId);
@@ -177,7 +174,7 @@ public class WorkflowRuntimeService {
         if (!candidateGroups.isEmpty() && target.getRoles().stream().noneMatch(candidateGroups::contains)) {
             throw new CustomException(ErrorCode.ACCESS_DENIED, HttpStatus.FORBIDDEN); // wrong role for this task
         }
-        taskService.setAssignee(taskId, target.getEmail());
+        taskService.setAssignee(taskId, target.getUid());
     }
 
     /** Complete a task; variables decide routing (e.g. {@code outcome=VALIDATE|RETURN}). */

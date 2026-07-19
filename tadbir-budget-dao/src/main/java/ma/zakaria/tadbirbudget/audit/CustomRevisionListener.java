@@ -11,18 +11,17 @@
 package ma.zakaria.tadbirbudget.audit;
 
 import ma.zakaria.tadbirbudget.entity.RevInfo;
-import ma.zakaria.tadbirbudget.util.MdcKeys;
 import org.hibernate.envers.RevisionListener;
 import org.slf4j.MDC;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
- * Populates {@link RevInfo} with the authenticated user's email and client IP
+ * Populates {@link RevInfo} with the authenticated user's login identifier and client IP
  * on every Envers revision.
  *
- * Email is read from Spring Security's {@code SecurityContextHolder}
- * (User.getUsername() returns email — it is the unique identifier).
+ * The actor is read from Spring Security's {@code SecurityContextHolder}
+ * (User.getUsername() returns the {@code uid} — the unique login identifier).
  * IP is read from SLF4J MDC (populated per-request by {@code MdcFilter}).
  */
 public class CustomRevisionListener implements RevisionListener {
@@ -30,16 +29,11 @@ public class CustomRevisionListener implements RevisionListener {
     @Override
     public void newRevision(Object revisionEntity) {
         RevInfo info = (RevInfo) revisionEntity;
-        info.setEmail(resolveEmail());
+        info.setActor(resolveActor());
         info.setIp(MDC.get("ip"));
     }
 
-    private String resolveEmail() {
-        // Self-registration: actor set explicitly before save (SecurityContext not populated yet)
-        String mdcActor = MDC.get(MdcKeys.REVISION_ACTOR_EMAIL);
-        if (mdcActor != null && !mdcActor.isBlank()) {
-            return mdcActor;
-        }
+    private String resolveActor() {
         // Authenticated operations (admin actions, updates, etc.)
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();

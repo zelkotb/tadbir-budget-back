@@ -23,16 +23,16 @@ import org.springframework.stereotype.Component;
  * the next step to the completer's hierarchical superior:
  *
  * <pre>{@code
- * <userTask id="instruction" flowable:candidateGroups="ROLE_INSTRUCTOR">
+ * <userTask id="review" flowable:candidateGroups="ROLE_EMPLOYEE">
  *   <extensionElements>
  *     <flowable:taskListener event="complete" delegateExpression="${managerResolutionListener}"/>
  *   </extensionElements>
  * </userTask>
- * <userTask id="directorReview" flowable:assignee="${manager}"
- *           flowable:candidateGroups="ROLE_POLE_DIRECTOR"/>
+ * <userTask id="managerReview" flowable:assignee="${manager}"
+ *           flowable:candidateGroups="ROLE_DEPARTMENT_MANAGER"/>
  * }</pre>
  *
- * On completion it sets the process variable {@code manager} to the e-mail of the completer's
+ * On completion it sets the process variable {@code manager} to the uid of the completer's
  * {@code manager_id} (their N+1). The next task can then bind {@code flowable:assignee="${manager}"}.
  * If the completer has no manager, {@code manager} is left null and the next task falls back to
  * its candidate group. No workflow-specific code — works for any process that opts in.
@@ -42,30 +42,30 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ManagerResolutionListener implements TaskListener {
 
-    /** The process variable populated with the N+1's e-mail. */
+    /** The process variable populated with the N+1's uid. */
     public static final String MANAGER_VARIABLE = "manager";
 
     private final transient UserRepository userRepository;
 
     @Override
     public void notify(DelegateTask delegateTask) {
-        String completerEmail = delegateTask.getAssignee();
-        if (completerEmail == null) {
+        String completerUid = delegateTask.getAssignee();
+        if (completerUid == null) {
             log.warn("ManagerResolutionListener: task {} completed without an assignee — cannot resolve N+1",
                     delegateTask.getId());
             delegateTask.setVariable(MANAGER_VARIABLE, null);
             return;
         }
-        String managerEmail = userRepository.findByEmail(completerEmail)
+        String managerUid = userRepository.findByUid(completerUid)
                 .map(User::getManagerId)
                 .flatMap(userRepository::findById)
-                .map(User::getEmail)
+                .map(User::getUid)
                 .orElse(null);
 
-        if (managerEmail == null) {
+        if (managerUid == null) {
             log.warn("No manager (N+1) resolved for {} — next task will fall back to its candidate group",
-                    completerEmail);
+                    completerUid);
         }
-        delegateTask.setVariable(MANAGER_VARIABLE, managerEmail);
+        delegateTask.setVariable(MANAGER_VARIABLE, managerUid);
     }
 }

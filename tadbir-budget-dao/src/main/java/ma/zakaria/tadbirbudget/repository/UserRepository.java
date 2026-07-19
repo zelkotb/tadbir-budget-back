@@ -23,7 +23,9 @@ import java.util.UUID;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificationExecutor<User> {
-    Optional<User> findByEmail(String email);
+    /** Lookup by login identifier ({@code uid}) — used by authentication. */
+    Optional<User> findByUid(String uid);
+    boolean existsByUid(String uid);
     boolean existsByEmail(String email);
 
     /**
@@ -38,14 +40,9 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
     List<User> findByRoleContaining(@Param("role") String role);
 
     /**
-     * Staff users — everyone holding a role other than the citizen role (ROLE_USER). Used to
-     * populate the "manager (N+1)" picker. Substring match is safe (no role name is a substring
-     * of another, by convention).
+     * All users, ordered by full name. Used to populate the "manager (N+1)" picker —
+     * any user may be another user's hierarchical superior.
      */
-    @Query(value = "SELECT * FROM users WHERE "
-            + "roles LIKE '%ROLE_ADMIN%' OR roles LIKE '%ROLE_INSTRUCTOR%' "
-            + "OR roles LIKE '%ROLE_VALIDATOR%' OR roles LIKE '%ROLE_COMMISSION%' "
-            + "OR roles LIKE '%ROLE_MEMBRE_COMMISSION%' OR roles LIKE '%ROLE_MANAGEMENT%' "
-            + "ORDER BY full_name", nativeQuery = true)
+    @Query(value = "SELECT * FROM users ORDER BY full_name", nativeQuery = true)
     List<User> findStaff();
 }

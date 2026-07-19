@@ -38,7 +38,7 @@ public class AuthAuditListener {
     public void on(AuthAuditEvent event) {
         try {
             authAuditRepository.save(AuthAudit.builder()
-                    .email(event.getEmail())
+                    .actor(event.getActor())
                     .eventType(event.getEventType())
                     .success(event.isSuccess())
                     .ipAddress(event.getIpAddress())
@@ -46,8 +46,8 @@ public class AuthAuditListener {
                     .occurredAt(event.getOccurredAt())
                     .build());
         } catch (Exception ex) {
-            log.error("Failed to persist auth audit event type={} email={} success={}",
-                    event.getEventType(), event.getEmail(), event.isSuccess(), ex);
+            log.error("Failed to persist auth audit event type={} actor={} success={}",
+                    event.getEventType(), event.getActor(), event.isSuccess(), ex);
         }
     }
 }

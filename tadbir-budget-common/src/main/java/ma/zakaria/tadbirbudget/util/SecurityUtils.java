@@ -36,10 +36,10 @@ public class SecurityUtils {
     }
 
     /**
-     * Shortcut for the most common case: getting the current user's email
-     * without casting to the concrete entity.
+     * Shortcut for the most common case: getting the current user's login identifier
+     * (their {@code uid}) without casting to the concrete entity.
      */
-    public String getCurrentUserEmail() {
+    public String getCurrentUsername() {
         return getCurrentUser().getUsername();
     }
 }

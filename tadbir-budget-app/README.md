@@ -113,14 +113,13 @@ Injects per-request context into SLF4J MDC. Key names are defined in `MdcKeys` (
 | MDC key (`MdcKeys.*`) | Constant | Source | Example |
 |---|---|---|---|
 | `ip` | `MdcKeys.IP` | `MdcFilter` (proxy-header-aware) | `192.168.1.1` |
-| `username` | `MdcKeys.USERNAME` | `SecurityContextHolder` | `user@example.com` / `anonymous` |
+| `username` | `MdcKeys.USERNAME` | `SecurityContextHolder` | `pm.admin` / `anonymous` |
 | `method` | `MdcKeys.METHOD` | `HttpServletRequest` | `POST` |
 | `uri` | `MdcKeys.URI` | `HttpServletRequest` | `/api/v1/auth/login` |
 | `traceId` | — | Micrometer OTel (auto) | `4bf92f3577b34da6...` |
 | `spanId` | — | Micrometer OTel (auto) | `00f067aa0ba902b7` |
-| `revisionActorEmail` | `MdcKeys.REVISION_ACTOR_EMAIL` | Set explicitly by `AuthService.signup()` | `user@test.ma` |
 
-`traceId` is the request correlation ID. `spanId` distinguishes spans within a trace (e.g. main request vs `@Async` audit listener). MDC is cleared in `finally` after every request — this also clears `revisionActorEmail` after the signup transaction commits.
+`traceId` is the request correlation ID. `spanId` distinguishes spans within a trace (e.g. main request vs `@Async` audit listener). MDC is cleared in `finally` after every request.
 
 ---
 
@@ -132,7 +131,7 @@ HH:mm:ss.SSS [traceId/spanId] [username] [ip] [method] [uri] LEVEL logger - mess
 
 Example:
 ```
-10:23:45.123 [4bf92f35/00f067aa] [john@example.com] [192.168.1.5] [POST] [/api/v1/auth/login] INFO  m.z.t.a.s.AuthService - [200] LOGIN
+10:23:45.123 [4bf92f35/00f067aa] [pm.admin] [192.168.1.5] [POST] [/api/v1/auth/login] INFO  m.z.t.a.s.AuthService - [200] LOGIN
 ```
 
 ### Switching SIEM tools

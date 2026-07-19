@@ -40,7 +40,7 @@ public class UserController {
     /**
      * GET /api/v1/user
      * Paginated user list. All filters are optional and combinable.
-     * fullName, email, cin support partial case-insensitive matching.
+     * fullName, email, uid support partial case-insensitive matching.
      * enabled is an exact match.
      */
     @GetMapping
@@ -48,19 +48,19 @@ public class UserController {
     public ResponseEntity<Page<UserResponse>> listUsers(
             @RequestParam(required = false) String          fullName,
             @RequestParam(required = false) String          email,
-            @RequestParam(required = false) String          cin,
+            @RequestParam(required = false) String          uid,
             @RequestParam(required = false) Boolean         enabled,
             @RequestParam(required = false) List<String>    roles,
             @PageableDefault(size = 20, sort = "fullName", direction = Sort.Direction.ASC)
             Pageable pageable) {
 
         return ResponseEntity.ok(
-                userService.listUsers(fullName, email, cin, enabled, roles, pageable));
+                userService.listUsers(fullName, email, uid, enabled, roles, pageable));
     }
 
     /**
      * POST /api/v1/user
-     * Creates a user and assigns roles. Assignable roles: ROLE_ADMIN, ROLE_INSTRUCTOR.
+     * Creates a user and assigns roles (see {@link ma.zakaria.tadbirbudget.constant.Roles}).
      */
     @PostMapping
     @PreAuthorize(Roles.IS_ADMIN)

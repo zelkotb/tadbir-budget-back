@@ -16,7 +16,7 @@ top of the modules below.
 tadbir-budget-back/
 ├── tadbir-budget-common/        Shared contracts (ErrorCode, Roles, MDC keys, utilities, validation)
 ├── tadbir-budget-dao/           Persistence: entities, repositories, Liquibase, Envers audit
-├── tadbir-budget-auth-jwt/      JWT authentication + Spring Security config, change-freeze admin
+├── tadbir-budget-auth-jwt/      JWT authentication + Spring Security config
 ├── tadbir-budget-user/          User management (CRUD, password, roles, Envers diff audit)
 ├── tadbir-budget-files/         Generic file storage (backend-owned paths, traversal-safe), Excel/PDF
 ├── tadbir-budget-notification/  Durable notification queue (e-mail + in-app), dispatcher, templating
@@ -51,7 +51,7 @@ app ← all of the above
 | Persistence | Spring Data JPA / Hibernate / PostgreSQL 16 |
 | Migrations | Liquibase 4.33 (`db/changelog/master.xml`) |
 | Workflow / BPMN | Flowable 7.1 (embedded, shares the datasource; history level `full`) |
-| Entity audit | Hibernate Envers (`@Audited`) + custom `RevInfo` (actor e-mail + IP) |
+| Entity audit | Hibernate Envers (`@Audited`) + custom `RevInfo` (actor uid + IP) |
 | Auth event log | `auth_audit` table (LOGIN / LOGOUT / TOKEN_REFRESH) |
 | Notifications | Durable queue + background dispatcher, e-mail (SMTP) + in-app, ShedLock-guarded |
 | Observability | Micrometer OTel (traceId/spanId in every log line); central `ControllerLoggingAspect` |
@@ -63,12 +63,11 @@ app ← all of the above
 
 ## What you get out of the box
 
-- **JWT authentication** — signup/login/refresh/logout, refresh-token rotation, account lockout on
-  repeated failures, `auth_audit` event log.
-- **Authorization** — role-based method security via `@PreAuthorize` and the `Roles` catalogue
-  (`ROLE_ADMIN` / `ROLE_USER` are the core; extra roles ship as ready-made examples you can trim).
-- **Change-freeze** — a global admin maintenance switch (`/api/v1/admin/change-freeze`) that blocks
-  new sign-ups while on; reusable as a generic "read-only window".
+- **JWT authentication** — login/refresh/logout by **uid**, refresh-token rotation, account lockout
+  on repeated failures, `auth_audit` event log. Accounts are created by an admin (no self sign-up).
+- **Authorization** — role-based method security via `@PreAuthorize` and the `Roles` catalogue:
+  a technical `ROLE_ADMIN` plus the organisation hierarchy `ROLE_EMPLOYEE`, `ROLE_DEPARTMENT_MANAGER`,
+  `ROLE_DIRECTION_MANAGER`, `ROLE_POLE_MANAGER`, `ROLE_DIRECTION_GENERALE` (swap for your own).
 - **Rate limiting** — per-IP token bucket (`RateLimitFilter`), configurable and toggleable per profile.
 - **Structured logging** — MDC filter stamps request/trace ids; `ControllerLoggingAspect` logs every
   controller call; Logback profiles per environment; OTel trace/span ids in each line.
@@ -80,7 +79,7 @@ app ← all of the above
 - **Files** — traversal-safe local storage with backend-owned layout, plus Excel export and
   HTML→PDF (Flying Saucer) helpers.
 - **Auditing** — Hibernate Envers field-level history with a custom revision entity capturing the
-  acting user's e-mail and IP.
+  acting user's uid and IP.
 
 ---
 
@@ -97,9 +96,10 @@ mvn spring-boot:run -pl tadbir-budget-app -am
 ```
 
 - Default profile is `dev` (see `tadbir-budget-app/src/main/resources/application-dev.yaml`).
-- Liquibase creates the schema on first boot; Flowable auto-deploys any bundled BPMN.
+- Liquibase creates the schema on first boot **and seeds a default admin** (`uid=pm.admin`,
+  password `P@ss2026` — change it after first login). Flowable auto-deploys any bundled BPMN.
 - Profiles: `dev`, `test`, `stage`, `prod` (prod externalizes everything via env vars).
-- Sign-up creates `ROLE_USER` accounts only — seed the first admin by SQL (see "First admin").
+- All other accounts are created by an admin via `POST /api/v1/user` — there is no self sign-up.
 
 ### Build
 
@@ -152,14 +152,15 @@ to `.env` and fill it in. Required keys:
 | `APP_COOKIE_SECURE` | `false` on plain HTTP, `true` with HTTPS |
 | `MAIL_ENABLED` / `MAIL_HOST` / `MAIL_PORT` / `MAIL_USERNAME` / `MAIL_PASSWORD` / `MAIL_FROM` | SMTP (e-mail notifications); `false` = log instead of send |
 
-### First admin (once)
+### First admin
 
-Sign-up only creates `ROLE_USER` accounts, so seed the first admin directly in the DB:
+Liquibase seeds one admin on first boot: **uid `pm.admin`, password `P@ss2026`** (`ROLE_ADMIN`).
+Log in, change the password (`PUT /api/v1/user/{id}/password`), then create the real users via
+`POST /api/v1/user`. To rotate the seeded password directly in the DB instead:
 
 ```bash
 docker compose exec postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" \
-  -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;" \
-  -c "INSERT INTO users (id,full_name,cin,phone_number,email,password,roles,enabled,failed_login_attempts) VALUES (gen_random_uuid(),'Admin','ADM','0600000000','admin@tadbir.ma',crypt('ChangeMe!2026',gen_salt('bf',10)),'ROLE_ADMIN',true,0);"
+  -c "UPDATE users SET password = crypt('YourNewStrongPass', gen_salt('bf',10)) WHERE uid = 'pm.admin';"
 ```
 
 ### Services & ports (single host)

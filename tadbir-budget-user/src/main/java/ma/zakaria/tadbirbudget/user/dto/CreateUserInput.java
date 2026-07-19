@@ -24,13 +24,14 @@ import java.util.UUID;
 @Data
 public class CreateUserInput {
 
+    /** Login identifier, e.g. {@code p.admin}. Must be unique. */
+    @NotBlank
+    @Size(max = 100)
+    private String uid;
+
     @NotBlank
     @Size(max = 100)
     private String fullName;
-
-    @NotBlank
-    @Size(max = 20)
-    private String cin;
 
     @NotBlank
     @Size(max = 20)
@@ -41,14 +42,11 @@ public class CreateUserInput {
     @Size(max = 255)
     private String email;
 
-    @Size(max = 255)
-    private String address;
-
     @NotBlank
     @ValidPassword
     private String password;
 
-    /** Assignable roles: ROLE_ADMIN or ROLE_INSTRUCTOR only. Validated in service. */
+    /** Assignable roles — see {@link ma.zakaria.tadbirbudget.constant.Roles}. Validated in service. */
     @NotEmpty
     private List<String> roles;
 

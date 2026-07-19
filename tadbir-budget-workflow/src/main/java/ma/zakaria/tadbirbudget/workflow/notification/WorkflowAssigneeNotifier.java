@@ -59,7 +59,7 @@ public class WorkflowAssigneeNotifier {
             return; // pool task (no assignee) → nobody is notified by design
         }
         try {
-            userRepository.findByEmail(event.getAssignee()).ifPresent(user -> notificationService.enqueue(
+            userRepository.findByUid(event.getAssignee()).ifPresent(user -> notificationService.enqueue(
                     NotificationRequest.of(
                             user.getId(), user.getEmail(),
                             Set.of(NotificationChannel.MAIL, NotificationChannel.APPLICATION),

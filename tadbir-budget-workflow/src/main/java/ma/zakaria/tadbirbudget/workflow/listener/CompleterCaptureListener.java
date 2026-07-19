@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
  * for both the {@code create} and {@code complete} events:
  *
  * <pre>{@code
- * <userTask id="instruction" flowable:candidateGroups="ROLE_INSTRUCTOR">
+ * <userTask id="review" flowable:candidateGroups="ROLE_EMPLOYEE">
  *   <extensionElements>
  *     <flowable:taskListener event="create"     delegateExpression="${completerCaptureListener}"/>
  *     <flowable:taskListener event="assignment" delegateExpression="${completerCaptureListener}"/>
@@ -29,7 +29,7 @@ import org.springframework.stereotype.Component;
  * }</pre>
  *
  * <p>On <b>assignment</b> (i.e. when someone claims or is given the task) it remembers that
- * person's e-mail in the process variable {@code <taskDefinitionKey>Assignee}. On <b>create</b>,
+ * person's uid in the process variable {@code <taskDefinitionKey>Assignee}. On <b>create</b>,
  * if that variable already holds someone (the flow looped back here), it reserves the task for
  * that same person; otherwise it leaves the task unassigned so its candidate-group pool applies.
  *

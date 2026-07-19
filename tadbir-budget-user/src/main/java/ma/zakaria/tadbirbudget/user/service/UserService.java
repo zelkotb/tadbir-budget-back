@@ -39,13 +39,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserService {
 
-    /** Roles an admin may assign when creating/updating a staff account (everything but USER). */
+    /** Roles an admin may assign when creating/updating an account. */
     private static final Set<String> ASSIGNABLE_ROLES = Set.of(
-            Roles.ADMIN, Roles.INSTRUCTOR, Roles.VALIDATOR, Roles.COMMISSION, Roles.MEMBRE_COMMISSION,
-            Roles.MANAGEMENT);
-    private static final Set<String> ALL_ROLES = Set.of(
-            Roles.ADMIN, Roles.INSTRUCTOR, Roles.VALIDATOR, Roles.COMMISSION, Roles.MEMBRE_COMMISSION,
-            Roles.MANAGEMENT, Roles.USER);
+            Roles.ADMIN, Roles.EMPLOYEE, Roles.DEPARTMENT_MANAGER, Roles.DIRECTION_MANAGER,
+            Roles.POLE_MANAGER, Roles.DIRECTION_GENERALE);
 
     private final UserRepository  userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -82,15 +79,19 @@ public class UserService {
         User user = userRepository.findById(targetId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND, HttpStatus.NOT_FOUND));
 
+        if (input.getUid() != null && !input.getUid().equals(user.getUid())) {
+            if (userRepository.existsByUid(input.getUid())) {
+                throw new CustomException(ErrorCode.UID_ALREADY_EXISTS, HttpStatus.BAD_REQUEST);
+            }
+            user.setUid(input.getUid());
+        }
         if (input.getEmail()           != null) user.setEmail(input.getEmail());
         if (input.getFullName()        != null) user.setFullName(input.getFullName());
-        if (input.getCin()             != null) user.setCin(input.getCin());
         if (input.getPhoneNumber()     != null) user.setPhoneNumber(input.getPhoneNumber());
-        if (input.getAddress()         != null) user.setAddress(input.getAddress());
 
         if (isAdmin && input.getRoles() != null && !input.getRoles().isEmpty()) {
             input.getRoles().forEach(role -> {
-                if (!ALL_ROLES.contains(role)) {
+                if (!ASSIGNABLE_ROLES.contains(role)) {
                     throw new CustomException(ErrorCode.INVALID_ROLE, HttpStatus.BAD_REQUEST);
                 }
             });
@@ -106,7 +107,7 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public Page<UserResponse> listUsers(String fullName, String email, String cin,
+    public Page<UserResponse> listUsers(String fullName, String email, String uid,
                                         Boolean enabled,
                                         List<String> roles, Pageable pageable) {
         Specification<User> spec = (root, query, cb) -> {
@@ -115,8 +116,8 @@ public class UserService {
                                                                 "%" + fullName.toLowerCase() + "%"));
             if (email           != null) predicates.add(cb.like(cb.lower(root.get("email")),
                                                                 "%" + email.toLowerCase() + "%"));
-            if (cin             != null) predicates.add(cb.like(cb.lower(root.get("cin")),
-                                                                "%" + cin.toLowerCase() + "%"));
+            if (uid             != null) predicates.add(cb.like(cb.lower(root.get("uid")),
+                                                                "%" + uid.toLowerCase() + "%"));
             if (enabled         != null) predicates.add(cb.equal(root.get("enabled"), enabled));
             if (roles != null && !roles.isEmpty()) {
                 // OR: user must have at least one of the requested roles.
@@ -132,7 +133,7 @@ public class UserService {
         return userRepository.findAll(spec, pageable).map(UserResponse::from);
     }
 
-    /** All staff users (any role other than ROLE_USER) — for the manager (N+1) picker. */
+    /** All users, for the manager (N+1) picker. */
     @Transactional(readOnly = true)
     public List<UserResponse> listStaff() {
         return userRepository.findStaff().stream().map(UserResponse::from).toList();
@@ -140,6 +141,9 @@ public class UserService {
 
     @Transactional
     public User createUser(CreateUserInput input) {
+        if (userRepository.existsByUid(input.getUid())) {
+            throw new CustomException(ErrorCode.UID_ALREADY_EXISTS, HttpStatus.BAD_REQUEST);
+        }
         if (userRepository.existsByEmail(input.getEmail())) {
             throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS, HttpStatus.BAD_REQUEST);
         }
@@ -156,11 +160,10 @@ public class UserService {
         }
 
         return userRepository.save(User.builder()
+                .uid(input.getUid())
                 .fullName(input.getFullName())
-                .cin(input.getCin())
                 .phoneNumber(input.getPhoneNumber())
                 .email(input.getEmail())
-                .address(input.getAddress())
                 .password(passwordEncoder.encode(input.getPassword()))
                 .roles(roles)
                 .managerId(input.getManagerId())

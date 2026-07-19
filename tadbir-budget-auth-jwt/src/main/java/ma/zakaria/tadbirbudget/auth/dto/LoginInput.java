@@ -10,16 +10,15 @@
  */
 package ma.zakaria.tadbirbudget.auth.dto;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
 public class LoginInput {
 
+    /** Login identifier (uid), e.g. {@code p.admin}. */
     @NotBlank
-    @Email
-    private String email;
+    private String uid;
 
     @NotBlank
     private String password;

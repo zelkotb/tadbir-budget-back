@@ -25,12 +25,4 @@ public class MdcKeys {
     public static final String USERNAME = "username";
     public static final String METHOD   = "method";
     public static final String URI      = "uri";
-
-    /**
-     * Set by auth services before saving a new user when the actor is not yet
-     * in SecurityContextHolder (e.g. self-registration via /signup).
-     * Read by {@code CustomRevisionListener} before falling back to the
-     * SecurityContext. Cleared automatically by MdcFilter after the request.
-     */
-    public static final String REVISION_ACTOR_EMAIL = "revisionActorEmail";
 }

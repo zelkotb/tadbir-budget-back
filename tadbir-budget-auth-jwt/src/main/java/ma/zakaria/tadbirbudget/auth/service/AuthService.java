@@ -17,16 +17,11 @@ import lombok.extern.slf4j.Slf4j;
 import ma.zakaria.tadbirbudget.auth.dto.AuthRequestContext;
 import ma.zakaria.tadbirbudget.auth.dto.LoginInput;
 import ma.zakaria.tadbirbudget.auth.dto.RefreshOutput;
-import ma.zakaria.tadbirbudget.auth.dto.SignupInput;
-import ma.zakaria.tadbirbudget.entity.ChangeFreeze;
 import ma.zakaria.tadbirbudget.entity.RefreshToken;
 import ma.zakaria.tadbirbudget.entity.User;
-import ma.zakaria.tadbirbudget.constant.Roles;
 import ma.zakaria.tadbirbudget.entity.enums.AuthEventType;
 import ma.zakaria.tadbirbudget.exception.CustomException;
-import ma.zakaria.tadbirbudget.util.MdcKeys;
 import ma.zakaria.tadbirbudget.exception.ErrorCode;
-import ma.zakaria.tadbirbudget.repository.ChangeFreezeRepository;
 import ma.zakaria.tadbirbudget.repository.UserRepository;
 import ma.zakaria.tadbirbudget.security.JwtService;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,10 +36,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import org.slf4j.MDC;
-
 import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -58,7 +50,6 @@ public class AuthService {
     private final RefreshTokenService    refreshTokenService;
     private final AuthenticationManager  authenticationManager;
     private final AuthAuditService       authAuditService;
-    private final ChangeFreezeRepository changeFreezeRepository;
 
     @Value("${refresh.expiration}")
     private long refreshExpirationSeconds;
@@ -71,59 +62,27 @@ public class AuthService {
 
     // ── Public API ────────────────────────────────────────────────────────────
 
-    @Transactional
-    public RefreshOutput signup(SignupInput input, HttpServletResponse response, AuthRequestContext ctx) {
-        // Global change-freeze: while frozen, no new citizen accounts may be created.
-        if (changeFreezeRepository.findById(ChangeFreeze.SINGLETON_ID)
-                .map(ChangeFreeze::isFrozen).orElse(false)) {
-            throw new CustomException(ErrorCode.CHANGES_FROZEN, HttpStatus.FORBIDDEN);
-        }
-        if (userRepository.existsByEmail(input.getEmail())) {
-            throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS, HttpStatus.BAD_REQUEST);
-        }
-
-        // Set the actor email in MDC before saving so CustomRevisionListener can
-        // record it in revinfo — SecurityContextHolder is empty at signup time.
-        // MdcFilter clears MDC after the full request (post transaction commit).
-        MDC.put(MdcKeys.REVISION_ACTOR_EMAIL, input.getEmail());
-
-        User user = User.builder()
-                .fullName(input.getFullName())
-                .cin(input.getCin())
-                .phoneNumber(input.getPhoneNumber())
-                .email(input.getEmail())
-                .address(input.getAdresse())
-                .password(passwordEncoder.encode(input.getPassword()))
-                .roles(List.of(Roles.USER))
-                .build();
-
-        userRepository.save(user);
-        RefreshOutput output = issueTokensAndBuildOutput(user, response);
-        authAuditService.recordSuccess(user.getEmail(), AuthEventType.LOGIN, ctx);
-        return output;
-    }
-
     // noRollbackFor ensures counter increments committed even when CustomException is thrown.
     @Transactional(noRollbackFor = CustomException.class)
     public RefreshOutput login(LoginInput input, HttpServletResponse response, AuthRequestContext ctx) {
         try {
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(input.getEmail(), input.getPassword()));
+                    new UsernamePasswordAuthenticationToken(input.getUid(), input.getPassword()));
         } catch (DisabledException ex) {
-            authAuditService.recordFailure(input.getEmail(), AuthEventType.LOGIN, ctx);
+            authAuditService.recordFailure(input.getUid(), AuthEventType.LOGIN, ctx);
             throw new CustomException(ErrorCode.ACCOUNT_DISABLED, HttpStatus.FORBIDDEN);
         } catch (BadCredentialsException ex) {
-            incrementFailedAttempts(input.getEmail());
-            authAuditService.recordFailure(input.getEmail(), AuthEventType.LOGIN, ctx);
+            incrementFailedAttempts(input.getUid());
+            authAuditService.recordFailure(input.getUid(), AuthEventType.LOGIN, ctx);
             throw new CustomException(ErrorCode.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
         }
 
-        User user = userRepository.findByEmail(input.getEmail())
+        User user = userRepository.findByUid(input.getUid())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND, HttpStatus.UNAUTHORIZED));
 
         resetFailedAttempts(user);
         RefreshOutput output = issueTokensAndBuildOutput(user, response);
-        authAuditService.recordSuccess(user.getEmail(), AuthEventType.LOGIN, ctx);
+        authAuditService.recordSuccess(user.getUid(), AuthEventType.LOGIN, ctx);
         return output;
     }
 
@@ -146,11 +105,11 @@ public class AuthService {
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND, HttpStatus.UNAUTHORIZED));
 
         if (!user.isEnabled()) {
-            authAuditService.recordFailure(user.getEmail(), AuthEventType.TOKEN_REFRESH, ctx);
+            authAuditService.recordFailure(user.getUid(), AuthEventType.TOKEN_REFRESH, ctx);
             throw new CustomException(ErrorCode.ACCOUNT_DISABLED, HttpStatus.FORBIDDEN);
         }
 
-        authAuditService.recordSuccess(user.getEmail(), AuthEventType.TOKEN_REFRESH, ctx);
+        authAuditService.recordSuccess(user.getUid(), AuthEventType.TOKEN_REFRESH, ctx);
         return new RefreshOutput(jwtService.generateToken(user));
     }
 
@@ -159,20 +118,20 @@ public class AuthService {
         extractRefreshCookie(request)
                 .flatMap(refreshTokenService::revoke)
                 .flatMap(userRepository::findById)
-                .map(User::getEmail)
-                .ifPresent(email -> authAuditService.recordSuccess(email, AuthEventType.LOGOUT, ctx));
+                .map(User::getUid)
+                .ifPresent(uid -> authAuditService.recordSuccess(uid, AuthEventType.LOGOUT, ctx));
         clearRefreshCookie(response);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private void incrementFailedAttempts(String email) {
-        userRepository.findByEmail(email).ifPresent(user -> {
+    private void incrementFailedAttempts(String uid) {
+        userRepository.findByUid(uid).ifPresent(user -> {
             user.setFailedLoginAttempts(user.getFailedLoginAttempts() + 1);
             if (user.getFailedLoginAttempts() >= lockoutMaxAttempts) {
                 user.setEnabled(false);
-                log.warn("Account disabled after {} failed login attempts email=[{}]",
-                        lockoutMaxAttempts, email);
+                log.warn("Account disabled after {} failed login attempts uid=[{}]",
+                        lockoutMaxAttempts, uid);
             }
             userRepository.save(user);
         });

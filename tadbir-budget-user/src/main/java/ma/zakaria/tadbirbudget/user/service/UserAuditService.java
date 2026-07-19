@@ -142,7 +142,7 @@ public class UserAuditService {
         return new UserAuditDiffResponse(
                 revisionId,
                 Instant.ofEpochMilli(revInfo.getTimestamp()),
-                revInfo.getEmail(),
+                revInfo.getActor(),
                 revInfo.getIp(),
                 action,
                 userId,
@@ -154,11 +154,10 @@ public class UserAuditService {
 
     private List<UserAuditDiffResponse.FieldChange> buildChanges(User before, User after) {
         List<UserAuditDiffResponse.FieldChange> changes = new ArrayList<>();
+        diff(changes, "uid",             before, after, User::getUid);
         diff(changes, "fullName",        before, after, User::getFullName);
         diff(changes, "email",           before, after, User::getEmail);
-        diff(changes, "cin",             before, after, User::getCin);
         diff(changes, "phoneNumber",     before, after, User::getPhoneNumber);
-        diff(changes, "address",         before, after, User::getAddress);
         diff(changes, "roles",           before, after, User::getRoles);
         // enabled is a primitive — handle null (deleted/created) explicitly
         Object beforeEnabled = before != null ? before.isEnabled() : null;
@@ -184,7 +183,7 @@ public class UserAuditService {
                 .forRevisionsOfEntity(User.class, false, true);
 
         if (performedBy != null) {
-            q.add(AuditEntity.revisionProperty("email")
+            q.add(AuditEntity.revisionProperty("actor")
                     .like("%" + performedBy + "%"));
         }
         if (ip != null) {

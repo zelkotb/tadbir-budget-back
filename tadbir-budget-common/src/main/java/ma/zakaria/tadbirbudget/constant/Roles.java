@@ -16,55 +16,33 @@ import lombok.experimental.UtilityClass;
 public final class Roles {
 
     // ── Authority strings (stored in DB / GrantedAuthority) ───────────────────
+    //
+    // ADMIN is a technical role (user management, audit, workflow deployment). The others are
+    // the organisation hierarchy, lowest to highest. Naming convention: no role name may be a
+    // substring of another (the roles column is a CSV matched with LIKE — see UserRepository).
 
-    public final String ADMIN             = "ROLE_ADMIN";
-    public final String USER              = "ROLE_USER";
-    public final String INSTRUCTOR        = "ROLE_INSTRUCTOR";
-    /** A hierarchical validator (the instructor's N+1, then N+2, …). Generic — any number of steps. */
-    public final String VALIDATOR         = "ROLE_VALIDATOR";
-    /** The commission's decision-maker (one user represents the commission). */
-    public final String COMMISSION        = "ROLE_COMMISSION";
-    /** A member of the commission. */
-    public final String MEMBRE_COMMISSION = "ROLE_MEMBRE_COMMISSION";
-    /** Top management: read-only oversight — sees everything, changes/validates nothing. */
-    public final String MANAGEMENT        = "ROLE_MANAGEMENT";
+    /** Technical administrator: creates/manages users, reads audit logs, deploys workflows. */
+    public final String ADMIN               = "ROLE_ADMIN";
+    public final String EMPLOYEE            = "ROLE_EMPLOYEE";
+    public final String DEPARTMENT_MANAGER  = "ROLE_DEPARTMENT_MANAGER";
+    public final String DIRECTION_MANAGER   = "ROLE_DIRECTION_MANAGER";
+    public final String POLE_MANAGER        = "ROLE_POLE_MANAGER";
+    public final String DIRECTION_GENERALE  = "ROLE_DIRECTION_GENERALE";
 
     // ── @PreAuthorize SpEL expressions ────────────────────────────────────────
 
-    public final String IS_ADMIN             = "hasRole('ADMIN')";
-    public final String IS_USER              = "hasRole('USER')";
-    public final String IS_INSTRUCTOR        = "hasRole('INSTRUCTOR')";
-    public final String IS_VALIDATOR         = "hasRole('VALIDATOR')";
-    public final String IS_COMMISSION        = "hasRole('COMMISSION')";
-    public final String IS_MEMBRE_COMMISSION = "hasRole('MEMBRE_COMMISSION')";
-    public final String IS_MANAGEMENT        = "hasRole('MANAGEMENT')";
-
-    public final String IS_ADMIN_OR_INSTRUCTOR = "hasAnyRole('ADMIN', 'INSTRUCTOR')";
+    public final String IS_ADMIN               = "hasRole('ADMIN')";
+    public final String IS_EMPLOYEE            = "hasRole('EMPLOYEE')";
+    public final String IS_DEPARTMENT_MANAGER  = "hasRole('DEPARTMENT_MANAGER')";
+    public final String IS_DIRECTION_MANAGER   = "hasRole('DIRECTION_MANAGER')";
+    public final String IS_POLE_MANAGER        = "hasRole('POLE_MANAGER')";
+    public final String IS_DIRECTION_GENERALE  = "hasRole('DIRECTION_GENERALE')";
 
     /**
-     * <b>Write</b> actors on the instruction workflow: instructor, hierarchical validators
-     * (N+1, N+2, …), commission and its members, and admins. (Management is excluded — it cannot
-     * act.) Adding a new validation role to the BPMN only means adding it here.
+     * Any authenticated business user may take part in a workflow — each BPMN decides, via its
+     * task {@code candidateGroups}, which role acts on which step. This guard simply keeps the
+     * workflow runtime API open to every real user role.
      */
-    public final String IS_WORKFLOW_ACTOR =
-            "hasAnyRole('ADMIN', 'INSTRUCTOR', 'VALIDATOR', 'COMMISSION', 'MEMBRE_COMMISSION')";
-
-    /** <b>Read</b> access to the workflow/requests: every actor plus read-only MANAGEMENT. */
-    public final String IS_WORKFLOW_VIEWER =
-            "hasAnyRole('ADMIN', 'INSTRUCTOR', 'VALIDATOR', 'COMMISSION', 'MEMBRE_COMMISSION', 'MANAGEMENT')";
-
-    /** People/HR-style analytics (per-employee comparisons): admins and management only. */
-    public final String IS_PEOPLE_ANALYST = "hasAnyRole('ADMIN', 'MANAGEMENT')";
-
-    /** Write-capable workflow actor (excludes management). */
-    public boolean isWorkflowActor(java.util.Collection<String> roles) {
-        return roles != null && (roles.contains(ADMIN) || roles.contains(INSTRUCTOR)
-                || roles.contains(VALIDATOR) || roles.contains(COMMISSION)
-                || roles.contains(MEMBRE_COMMISSION));
-    }
-
-    /** Read access to the workflow/requests: any actor or read-only management. */
-    public boolean canViewWorkflow(java.util.Collection<String> roles) {
-        return roles != null && (isWorkflowActor(roles) || roles.contains(MANAGEMENT));
-    }
+    public final String IS_WORKFLOW_ACTOR = "hasAnyRole('ADMIN', 'EMPLOYEE', "
+            + "'DEPARTMENT_MANAGER', 'DIRECTION_MANAGER', 'POLE_MANAGER', 'DIRECTION_GENERALE')";
 }

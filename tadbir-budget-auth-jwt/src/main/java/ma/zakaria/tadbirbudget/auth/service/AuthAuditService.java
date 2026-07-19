@@ -45,9 +45,9 @@ public class AuthAuditService {
      * Persistence happens asynchronously after the caller's transaction commits,
      * so this never blocks the auth response.
      */
-    public void recordSuccess(String email, AuthEventType eventType, AuthRequestContext ctx) {
+    public void recordSuccess(String actor, AuthEventType eventType, AuthRequestContext ctx) {
         eventPublisher.publishEvent(
-                new AuthAuditEvent(email, eventType, true, ctx.ipAddress(), ctx.userAgent()));
+                new AuthAuditEvent(actor, eventType, true, ctx.ipAddress(), ctx.userAgent()));
     }
 
     /**
@@ -56,10 +56,10 @@ public class AuthAuditService {
      * about to roll back (exception in flight) and the audit row must survive.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void recordFailure(String email, AuthEventType eventType, AuthRequestContext ctx) {
+    public void recordFailure(String actor, AuthEventType eventType, AuthRequestContext ctx) {
         try {
             authAuditRepository.save(AuthAudit.builder()
-                    .email(email)
+                    .actor(actor)
                     .eventType(eventType)
                     .success(false)
                     .ipAddress(ctx.ipAddress())
@@ -67,24 +67,24 @@ public class AuthAuditService {
                     .occurredAt(Instant.now())
                     .build());
         } catch (Exception ex) {
-            log.error("Failed to persist failed auth audit event type={} email={}", eventType, email, ex);
+            log.error("Failed to persist failed auth audit event type={} actor={}", eventType, actor, ex);
         }
     }
 
     /**
      * Returns a paginated, filterable view of the auth audit log.
-     * {@code email} and {@code ipAddress} support partial LIKE matching.
+     * {@code actor} and {@code ipAddress} support partial LIKE matching.
      * {@code date} matches against {@code occurred_at} formatted as {@code DD/MM/YYYY},
      * so partial inputs like {@code "04/06"} or {@code "04/06/2026"} all work.
      */
     @Transactional(readOnly = true)
-    public Page<AuthAuditResponse> query(String email, String ipAddress,
+    public Page<AuthAuditResponse> query(String actor, String ipAddress,
                                          AuthEventType eventType, Boolean success,
                                          String date, Pageable pageable) {
         Specification<AuthAudit> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
-            if (email     != null) predicates.add(cb.like(cb.lower(root.get("email")),
-                                                          "%" + email.toLowerCase() + "%"));
+            if (actor     != null) predicates.add(cb.like(cb.lower(root.get("actor")),
+                                                          "%" + actor.toLowerCase() + "%"));
             if (ipAddress != null) predicates.add(cb.like(root.get("ipAddress"),
                                                           "%" + ipAddress + "%"));
             if (eventType != null) predicates.add(cb.equal(root.get("eventType"), eventType));

@@ -59,7 +59,7 @@ public class JwtService {
                 .toList();
 
         return Jwts.builder()
-                .subject(user.getEmail())
+                .subject(user.getUid())
                 .claim("fullName", user.getFullName())
                 .claim("roles",    roles)
                 .issuedAt(new Date())
@@ -68,7 +68,7 @@ public class JwtService {
                 .compact();
     }
 
-    public String extractEmail(String token) {
+    public String extractUsername(String token) {
         return extractAllClaims(token).getSubject();
     }
 
@@ -83,8 +83,8 @@ public class JwtService {
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
         try {
-            String email = extractEmail(token);
-            return email.equals(userDetails.getUsername()) && !isExpired(token);
+            String username = extractUsername(token);
+            return username.equals(userDetails.getUsername()) && !isExpired(token);
         } catch (JwtException | IllegalArgumentException e) {
             log.warn("JWT validation failed: {}", e.getMessage());
             return false;

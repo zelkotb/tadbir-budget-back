@@ -18,6 +18,7 @@ public enum ErrorCode {
 
     // ── Authentication ───────────────────────────────────────────────────────
     EMAIL_ALREADY_EXISTS,
+    UID_ALREADY_EXISTS,
     INVALID_CREDENTIALS,
     ACCOUNT_DISABLED,
     USER_NOT_FOUND,
@@ -67,15 +68,6 @@ public enum ErrorCode {
 
     // ── Notification ─────────────────────────────────────────────────────────
     NOTIFICATION_NOT_FOUND,
-
-    // ── Plan d'aménagement requests ──────────────────────────────────────────
-    PA_REQUEST_NOT_FOUND,
-    PA_SUB_REQUEST_NOT_FOUND,
-    NOT_REQUEST_OWNER,
-    REQUEST_HAS_NO_SUB_REQUESTS,
-    REQUEST_NOT_EDITABLE,
-    CHANGES_FROZEN,
-    CHANGE_FREEZE_REQUIRED,
 
     // ── Files ────────────────────────────────────────────────────────────────
     FILE_EMPTY,

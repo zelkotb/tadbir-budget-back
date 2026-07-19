@@ -19,17 +19,19 @@ User management feature module. Handles admin-driven user creation, password cha
 **Body:**
 ```json
 {
+  "uid":             "p.admin",
   "fullName":        "string",
-  "cin":             "string",
   "phoneNumber":     "string",
   "email":           "string",
-  "address":         "string",
   "password":        "string",
-  "roles":           ["ROLE_ADMIN", "ROLE_INSTRUCTOR"]
+  "roles":           ["ROLE_ADMIN"]
 }
 ```
 
-Assignable roles: `ROLE_ADMIN` and `ROLE_INSTRUCTOR` only. Any other value returns `INVALID_ROLE`.
+`uid` is the login identifier (unique). Assignable roles: `ROLE_ADMIN`, `ROLE_EMPLOYEE`,
+`ROLE_DEPARTMENT_MANAGER`, `ROLE_DIRECTION_MANAGER`, `ROLE_POLE_MANAGER`, `ROLE_DIRECTION_GENERALE`.
+Any other value returns `INVALID_ROLE`; a duplicate `uid`/`email` returns `UID_ALREADY_EXISTS` /
+`EMAIL_ALREADY_EXISTS`.
 
 ---
 
@@ -58,7 +60,7 @@ Queries Hibernate Envers revision history for the `User` entity via `AuditReader
 
 | Param | Type | Behaviour |
 |---|---|---|
-| `performedBy` | `string` | Partial match on the email of who made the change |
+| `performedBy` | `string` | Partial match on the uid of who made the change |
 | `ip` | `string` | Partial match on IP address |
 | `action` | `CREATE \| UPDATE \| DELETE` | Exact match on revision type |
 | `userId` | `UUID` | Exact match — full history of one user |
@@ -71,17 +73,16 @@ Queries Hibernate Envers revision history for the `User` entity via `AuditReader
   "content": [{
     "revisionId":     1,
     "occurredAt":     "2026-06-05T10:00:00Z",
-    "performedBy":    "admin@tadbir-budget.ma",
+    "performedBy":    "pm.admin",
     "performedFrom":  "192.168.1.1",
     "action":         "UPDATE",
     "userId":         "uuid",
+    "uid":            "j.doe",
     "email":          "user@test.ma",
     "fullName":       "Test User",
-    "cin":            "CIN001",
     "phoneNumber":    "0612345678",
-    "address":        "Rabat",
     "enabled":        true,
-    "roles":          ["ROLE_USER"]
+    "roles":          ["ROLE_EMPLOYEE"]
   }],
   "totalElements": 42,
   ...
@@ -94,12 +95,11 @@ Queries Hibernate Envers revision history for the `User` entity via `AuditReader
 
 ## How Envers tracks the actor
 
-`RevInfo` (in `tadbir-budget-dao`) stores the email and IP of who triggered each revision:
+`RevInfo` (in `tadbir-budget-dao`) stores the uid and IP of who triggered each revision:
 
-| Scenario | Actor email source |
+| Scenario | Actor source |
 |---|---|
-| Self-registration (`/signup`) | MDC key `revisionActorEmail` set by `AuthService` before saving |
-| Admin creates / updates user | `SecurityContextHolder` (authenticated) |
+| Admin creates / updates user | `SecurityContextHolder` (authenticated uid) |
 | Batch / scheduled job | Falls back to `"system"` |
 
 ---

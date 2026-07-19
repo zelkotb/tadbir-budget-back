@@ -18,7 +18,7 @@ Shared contracts used by every module. Contains no business logic and no Spring 
 
 | Class | Purpose |
 |---|---|
-| `Roles` | Authority strings (`ROLE_ADMIN`, …) and `@PreAuthorize` SpEL constants. **Convention:** role names must never be a prefix or substring of another role name — this ensures `LIKE '%ROLE_X%'` queries are unambiguous. |
+| `Roles` | Authority strings — technical `ROLE_ADMIN` plus the org hierarchy (`ROLE_EMPLOYEE`, `ROLE_DEPARTMENT_MANAGER`, `ROLE_DIRECTION_MANAGER`, `ROLE_POLE_MANAGER`, `ROLE_DIRECTION_GENERALE`) — and the matching `@PreAuthorize` SpEL constants. **Convention:** role names must never be a prefix or substring of another role name — this ensures `LIKE '%ROLE_X%'` queries are unambiguous. |
 
 ### `enums/`
 
@@ -30,8 +30,8 @@ Shared contracts used by every module. Contains no business logic and no Spring 
 
 | Class | Purpose |
 |---|---|
-| `SecurityUtils` | `getCurrentUser()` → `UserDetails`, `getCurrentUserEmail()` → `String`. Shared across all service modules. Cast to concrete `User` entity when needed. |
-| `MdcKeys` | Centralised MDC key constants (`ip`, `username`, `method`, `uri`, `revisionActorEmail`). Prevents key name drift between producers and consumers. |
+| `SecurityUtils` | `getCurrentUser()` → `UserDetails`, `getCurrentUsername()` → `String` (the uid). Shared across all service modules. Cast to concrete `User` entity when needed. |
+| `MdcKeys` | Centralised MDC key constants (`ip`, `username`, `method`, `uri`). Prevents key name drift between producers and consumers. |
 
 ---
 

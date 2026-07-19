@@ -38,7 +38,7 @@ public class AuthAuditController {
      *
      * <p>All query params are optional — omit to return the full audit log.
      *
-     * @param email     partial email filter, case-insensitive (e.g. "john" matches "john@example.com")
+     * @param actor     partial actor (uid) filter, case-insensitive (e.g. "adm" matches "pm.admin")
      * @param ipAddress partial IP filter (e.g. "192.168" matches "192.168.1.1")
      * @param eventType filter by event type (LOGIN, LOGOUT, TOKEN_REFRESH)
      * @param success   filter by outcome (true = successful, false = failed)
@@ -49,7 +49,7 @@ public class AuthAuditController {
     @GetMapping
     @PreAuthorize(Roles.IS_ADMIN)
     public ResponseEntity<Page<AuthAuditResponse>> getAudit(
-            @RequestParam(required = false) String        email,
+            @RequestParam(required = false) String        actor,
             @RequestParam(required = false) String        ipAddress,
             @RequestParam(required = false) AuthEventType eventType,
             @RequestParam(required = false) Boolean       success,
@@ -57,6 +57,6 @@ public class AuthAuditController {
             @PageableDefault(size = 20, sort = "occurredAt", direction = Sort.Direction.DESC)
             Pageable pageable) {
 
-        return ResponseEntity.ok(authAuditService.query(email, ipAddress, eventType, success, date, pageable));
+        return ResponseEntity.ok(authAuditService.query(actor, ipAddress, eventType, success, date, pageable));
     }
 }

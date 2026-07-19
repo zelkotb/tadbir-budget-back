@@ -22,16 +22,16 @@ import java.time.Instant;
 @Getter
 public class AuthAuditEvent {
 
-    private final String        email;
+    private final String        actor;
     private final AuthEventType eventType;
     private final boolean       success;
     private final String        ipAddress;
     private final String        userAgent;
     private final Instant       occurredAt = Instant.now();
 
-    public AuthAuditEvent(String email, AuthEventType eventType, boolean success,
+    public AuthAuditEvent(String actor, AuthEventType eventType, boolean success,
                           String ipAddress, String userAgent) {
-        this.email     = email;
+        this.actor     = actor;
         this.eventType = eventType;
         this.success   = success;
         this.ipAddress = ipAddress;

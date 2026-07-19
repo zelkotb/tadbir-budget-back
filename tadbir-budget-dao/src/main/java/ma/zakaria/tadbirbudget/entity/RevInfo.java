@@ -46,9 +46,9 @@ public class RevInfo implements Serializable {
     @Column(name = "timestamp", nullable = false)
     private long timestamp;
 
-    /** Email of the authenticated user who triggered the change, or "system". */
-    @Column(length = 255)
-    private String email;
+    /** Login identifier ({@code uid}) of the authenticated user who triggered the change, or "system". */
+    @Column(name = "actor", length = 255)
+    private String actor;
 
     /** Client IP address at the time of the change (from MDC, populated by MdcFilter). */
     @Column(name = "ip_address", length = 45)
