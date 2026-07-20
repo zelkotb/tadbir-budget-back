@@ -46,4 +46,7 @@ public class UpdateUserInput {
 
     /** Admin-only: this user's direct superior (N+1). Must be an existing, different user. */
     private UUID managerId;
+
+    /** Admin-only: the organisation unit the user belongs to. */
+    private UUID orgUnitId;
 }

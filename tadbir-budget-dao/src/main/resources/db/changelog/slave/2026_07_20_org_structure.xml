@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+
+    This source code is the exclusive property of Zakaria El Kotb.
+    Unauthorized copying, modification, distribution, or use of this file,
+    via any medium, is strictly prohibited without the prior written
+    permission of the copyright owner.
+
+    Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+
+-->
+<!--
+    Organisation structure (Stage 0 of the budget app): the org_unit tree (pôle / direction /
+    département / service, freely nested via parent_id + materialized path) and the users'
+    org_unit_id assignment. Column definitions mirror the JPA entities (OrgUnit, User).
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="create_org_unit" author="zakaria el kotb">
+        <sql>
+            create table org_unit (
+                id uuid not null,
+                name varchar(255) not null,
+                kind varchar(30) not null,
+                parent_id uuid,
+                manager_id uuid,
+                path varchar(1000) not null,
+                depth integer not null,
+                active boolean not null,
+                primary key (id)
+            );
+        </sql>
+        <sql>alter table org_unit add constraint fk_org_unit_parent foreign key (parent_id) references org_unit (id);</sql>
+        <sql>alter table org_unit add constraint fk_org_unit_manager foreign key (manager_id) references users (id);</sql>
+        <sql>create index idx_org_unit_parent_id on org_unit (parent_id);</sql>
+        <sql>create index idx_org_unit_manager_id on org_unit (manager_id);</sql>
+        <!-- varchar_pattern_ops so the subtree query (path LIKE 'prefix%') uses the index -->
+        <sql>create index idx_org_unit_path on org_unit (path varchar_pattern_ops);</sql>
+        <rollback>
+            <sql>drop table if exists org_unit cascade;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="create_org_unit_audit" author="zakaria el kotb">
+        <sql>
+            create table org_unit_audit (
+                id uuid not null,
+                rev integer not null,
+                revtype smallint,
+                name varchar(255),
+                kind varchar(30),
+                parent_id uuid,
+                manager_id uuid,
+                active boolean,
+                primary key (rev, id)
+            );
+        </sql>
+        <sql>alter table org_unit_audit add constraint fk_org_unit_audit_revinfo foreign key (rev) references revinfo (id);</sql>
+        <rollback>
+            <sql>drop table if exists org_unit_audit cascade;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="users_add_org_unit" author="zakaria el kotb">
+        <sql>alter table users add column org_unit_id uuid;</sql>
+        <sql>alter table users add constraint fk_users_org_unit foreign key (org_unit_id) references org_unit (id);</sql>
+        <sql>create index idx_users_org_unit_id on users (org_unit_id);</sql>
+        <sql>alter table users_audit add column org_unit_id uuid;</sql>
+        <rollback>
+            <sql>alter table users_audit drop column if exists org_unit_id;</sql>
+            <sql>alter table users drop column if exists org_unit_id;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

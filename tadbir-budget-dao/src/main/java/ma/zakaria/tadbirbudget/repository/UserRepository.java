@@ -28,6 +28,10 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
     boolean existsByUid(String uid);
     boolean existsByEmail(String email);
 
+    boolean existsByOrgUnitId(UUID orgUnitId);
+    List<User> findByOrgUnitIdOrderByFullNameAsc(UUID orgUnitId);
+    List<User> findByOrgUnitIdInOrderByFullNameAsc(List<UUID> orgUnitIds);
+
     /**
      * Enabled users holding the given role. {@code roles} is a comma-joined string
      * (see {@link ma.zakaria.tadbirbudget.converter.StringListConverter}); a plain

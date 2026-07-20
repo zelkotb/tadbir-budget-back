@@ -159,6 +159,7 @@ public class UserAuditService {
         diff(changes, "email",           before, after, User::getEmail);
         diff(changes, "phoneNumber",     before, after, User::getPhoneNumber);
         diff(changes, "roles",           before, after, User::getRoles);
+        diff(changes, "orgUnitId",       before, after, User::getOrgUnitId);
         // enabled is a primitive — handle null (deleted/created) explicitly
         Object beforeEnabled = before != null ? before.isEnabled() : null;
         Object afterEnabled  = after  != null ? after.isEnabled()  : null;

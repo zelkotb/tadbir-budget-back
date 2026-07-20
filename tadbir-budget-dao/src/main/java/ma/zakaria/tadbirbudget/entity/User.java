@@ -58,6 +58,10 @@ public class User implements UserDetails {
     @Column(name = "manager_id", columnDefinition = "uuid")
     private UUID managerId;
 
+    /** The organisation unit (pôle / direction / département …) this user belongs to, optional. */
+    @Column(name = "org_unit_id", columnDefinition = "uuid")
+    private UUID orgUnitId;
+
     @NotAudited
     @Column(nullable = false)
     private String password;

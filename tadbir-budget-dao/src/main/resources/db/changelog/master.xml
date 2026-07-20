@@ -18,4 +18,5 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
 
     <include file="db/changelog/slave/2026_07_17_baseline.xml"/>
+    <include file="db/changelog/slave/2026_07_20_org_structure.xml"/>
 </databaseChangeLog>

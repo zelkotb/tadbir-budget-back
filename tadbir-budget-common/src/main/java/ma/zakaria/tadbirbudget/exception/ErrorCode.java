@@ -69,6 +69,12 @@ public enum ErrorCode {
     // ── Notification ─────────────────────────────────────────────────────────
     NOTIFICATION_NOT_FOUND,
 
+    // ── Organisation structure ───────────────────────────────────────────────
+    ORG_UNIT_NOT_FOUND,
+    ORG_UNIT_CYCLE,
+    ORG_UNIT_HAS_CHILDREN,
+    ORG_UNIT_HAS_USERS,
+
     // ── Files ────────────────────────────────────────────────────────────────
     FILE_EMPTY,
     FILE_TOO_LARGE,

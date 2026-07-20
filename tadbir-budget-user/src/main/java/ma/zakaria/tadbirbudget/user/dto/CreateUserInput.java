@@ -55,4 +55,7 @@ public class CreateUserInput {
      * existing user id. Leave null for users at the top of the chain.
      */
     private UUID managerId;
+
+    /** Optional: the organisation unit (pôle / direction / département …) the user belongs to. */
+    private UUID orgUnitId;
 }

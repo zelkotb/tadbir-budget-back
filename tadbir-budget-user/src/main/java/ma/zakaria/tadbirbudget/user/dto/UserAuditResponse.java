@@ -31,7 +31,8 @@ public record UserAuditResponse(
         String         fullName,
         String         phoneNumber,
         boolean        enabled,
-        List<String>   roles
+        List<String>   roles,
+        UUID           orgUnitId
 ) {
     public static UserAuditResponse from(User user, RevInfo rev, RevisionType type) {
         AuditAction action = switch (type) {
@@ -51,7 +52,8 @@ public record UserAuditResponse(
                 user != null ? user.getFullName()        : null,
                 user != null ? user.getPhoneNumber()     : null,
                 user != null && user.isEnabled(),
-                user != null ? user.getRoles()           : List.of()
+                user != null ? user.getRoles()           : List.of(),
+                user != null ? user.getOrgUnitId()       : null
         );
     }
 }

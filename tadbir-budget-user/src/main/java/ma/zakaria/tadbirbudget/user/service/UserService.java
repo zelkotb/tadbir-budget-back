@@ -16,6 +16,7 @@ import ma.zakaria.tadbirbudget.constant.Roles;
 import ma.zakaria.tadbirbudget.entity.User;
 import ma.zakaria.tadbirbudget.exception.CustomException;
 import ma.zakaria.tadbirbudget.exception.ErrorCode;
+import ma.zakaria.tadbirbudget.repository.OrgUnitRepository;
 import ma.zakaria.tadbirbudget.repository.UserRepository;
 import ma.zakaria.tadbirbudget.user.dto.ChangePasswordInput;
 import ma.zakaria.tadbirbudget.user.dto.CreateUserInput;
@@ -44,8 +45,9 @@ public class UserService {
             Roles.ADMIN, Roles.EMPLOYEE, Roles.DEPARTMENT_MANAGER, Roles.DIRECTION_MANAGER,
             Roles.POLE_MANAGER, Roles.DIRECTION_GENERALE, Roles.CONTROLE_GESTION);
 
-    private final UserRepository  userRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final UserRepository    userRepository;
+    private final OrgUnitRepository orgUnitRepository;
+    private final PasswordEncoder   passwordEncoder;
 
     @Transactional(readOnly = true)
     public UserResponse getMe() {
@@ -103,6 +105,11 @@ public class UserService {
             user.setManagerId(input.getManagerId());
         }
 
+        if (isAdmin && input.getOrgUnitId() != null) {
+            validateOrgUnit(input.getOrgUnitId());
+            user.setOrgUnitId(input.getOrgUnitId());
+        }
+
         return UserResponse.from(userRepository.save(user));
     }
 
@@ -158,6 +165,7 @@ public class UserService {
         if (input.getManagerId() != null && !userRepository.existsById(input.getManagerId())) {
             throw new CustomException(ErrorCode.USER_NOT_FOUND, HttpStatus.BAD_REQUEST);
         }
+        validateOrgUnit(input.getOrgUnitId());
 
         return userRepository.save(User.builder()
                 .uid(input.getUid())
@@ -167,7 +175,15 @@ public class UserService {
                 .password(passwordEncoder.encode(input.getPassword()))
                 .roles(roles)
                 .managerId(input.getManagerId())
+                .orgUnitId(input.getOrgUnitId())
                 .build());
+    }
+
+    /** When provided, the org unit must exist. */
+    private void validateOrgUnit(UUID orgUnitId) {
+        if (orgUnitId != null && !orgUnitRepository.existsById(orgUnitId)) {
+            throw new CustomException(ErrorCode.ORG_UNIT_NOT_FOUND, HttpStatus.BAD_REQUEST);
+        }
     }
 
     /** A manager must be an existing, different user (no self-management). */

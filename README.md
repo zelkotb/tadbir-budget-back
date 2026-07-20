@@ -18,6 +18,7 @@ tadbir-budget-back/
 ├── tadbir-budget-dao/           Persistence: entities, repositories, Liquibase, Envers audit
 ├── tadbir-budget-auth-jwt/      JWT authentication + Spring Security config
 ├── tadbir-budget-user/          User management (CRUD, password, roles, Envers diff audit)
+├── tadbir-budget-org/           Organisation structure (pôles/directions/départements tree)
 ├── tadbir-budget-files/         Generic file storage (traversal-safe), Excel/PDF/JasperReports export
 ├── tadbir-budget-notification/  Durable notification queue (e-mail + in-app), dispatcher, templating
 ├── tadbir-budget-workflow/      Flowable engine wrapper: runtime API, listeners, event bridge
@@ -33,6 +34,7 @@ dao ← common
   ↑
 ├── auth-jwt      ← common + dao
 ├── user          ← common + dao
+├── org           ← common + dao
 ├── files         ← common
 ├── notification  ← common + dao
 └── workflow      ← common + dao + notification

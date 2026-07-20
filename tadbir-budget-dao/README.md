@@ -10,7 +10,8 @@ Persistence layer. Owns everything database-related: JPA entities, Spring Data r
 
 | Class | Table | Audited | Description |
 |---|---|---|---|
-| `User` | `users` | ✓ `@Audited` | Application user, implements `UserDetails`. Logs in with `uid`; roles stored as CSV via `StringListConverter`. |
+| `User` | `users` | ✓ `@Audited` | Application user, implements `UserDetails`. Logs in with `uid`; roles stored as CSV via `StringListConverter`; belongs to an `org_unit` (nullable). |
+| `OrgUnit` | `org_unit` | ✓ `@Audited` | Organisation node (pôle/direction/département…), freely nested via `parent_id` + materialized `path` (`path`/`depth` not audited). |
 | `RefreshToken` | `refresh_tokens` | — | Refresh token linked to a user |
 | `AuthAudit` | `auth_audit` | — | Append-only auth event log (LOGIN/LOGOUT/TOKEN_REFRESH) |
 | `RevInfo` | `revinfo` | — | Custom Envers revision entity — stores the actor (uid) + IP of who made the change |
@@ -32,7 +33,8 @@ Persistence layer. Owns everything database-related: JPA entities, Spring Data r
 
 | Interface | Entity | Notes |
 |---|---|---|
-| `UserRepository` | `User` | `findByUid`, `existsByUid`, `existsByEmail`, `findByRoleContaining`, `findStaff` |
+| `UserRepository` | `User` | `findByUid`, `existsByUid`, `existsByEmail`, `findByRoleContaining`, `findStaff`, org-unit lookups |
+| `OrgUnitRepository` | `OrgUnit` | subtree via `findByPathStartingWith…`, bulk `rebasePaths` for moves |
 | `RefreshTokenRepository` | `RefreshToken` | `findByToken`, `deleteExpiredTokens` |
 | `AuthAuditRepository` | `AuthAudit` | extends `JpaSpecificationExecutor` for dynamic filtering |
 
@@ -47,9 +49,10 @@ Persistence layer. Owns everything database-related: JPA entities, Spring Data r
 ```
 master.xml
 └── slave/
-    └── 2026_07_17_baseline.xml   pgcrypto + pg_trgm, revinfo, users (+ audit),
-                                  seed admin (uid=pm.admin), refresh_tokens,
-                                  auth_audit, notification (+ audit), shedlock
+    ├── 2026_07_17_baseline.xml        pgcrypto + pg_trgm, revinfo, users (+ audit),
+    │                                  seed admin (uid=pm.admin), refresh_tokens,
+    │                                  auth_audit, notification (+ audit), shedlock
+    └── 2026_07_20_org_structure.xml   org_unit (+ audit), users.org_unit_id
 ```
 
 A single clean baseline creates every reusable table. Changelogs live in this module's JAR

@@ -8,36 +8,29 @@
  *
  * Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
  */
-package ma.zakaria.tadbirbudget.user.dto;
+package ma.zakaria.tadbirbudget.organisation.dto;
 
 import ma.zakaria.tadbirbudget.entity.User;
 
 import java.util.List;
 import java.util.UUID;
 
-public record UserResponse(
-        UUID            id,
-        String          uid,
-        String          fullName,
-        String          email,
-        String          phoneNumber,
-        List<String>    roles,
-        boolean         enabled,
-        int             failedLoginAttempts,
-        UUID            managerId,
-        UUID            orgUnitId
+/** A member of an org unit, as listed under {@code GET /api/v1/org-units/{id}/users}. */
+public record OrgUnitUserResponse(
+        UUID         id,
+        String       uid,
+        String       fullName,
+        String       email,
+        List<String> roles,
+        UUID         orgUnitId
 ) {
-    public static UserResponse from(User user) {
-        return new UserResponse(
+    public static OrgUnitUserResponse from(User user) {
+        return new OrgUnitUserResponse(
                 user.getId(),
                 user.getUid(),
                 user.getFullName(),
                 user.getEmail(),
-                user.getPhoneNumber(),
                 user.getRoles(),
-                user.isEnabled(),
-                user.getFailedLoginAttempts(),
-                user.getManagerId(),
                 user.getOrgUnitId()
         );
     }
