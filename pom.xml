@@ -34,6 +34,7 @@
         <module>tadbir-budget-auth-jwt</module>
         <module>tadbir-budget-user</module>
         <module>tadbir-budget-org</module>
+        <module>tadbir-budget-nomenclature</module>
         <module>tadbir-budget-notification</module>
         <module>tadbir-budget-workflow</module>
         <module>tadbir-budget-files</module>
@@ -84,6 +85,11 @@
             <dependency>
                 <groupId>ma.zakaria</groupId>
                 <artifactId>tadbir-budget-org</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ma.zakaria</groupId>
+                <artifactId>tadbir-budget-nomenclature</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+
+    This source code is the exclusive property of Zakaria El Kotb.
+    Unauthorized copying, modification, distribution, or use of this file,
+    via any medium, is strictly prohibited without the prior written
+    permission of the copyright owner.
+
+    Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+
+-->
+<!--
+    Rename the budget "nomenclature definition" (the level template: Chapitre -> Article -> Ligne).
+    The word "nomenclature" is reserved for the real filled tree (Fonctionnement -> Marina -> ...),
+    so budget_tree_type/budget_tree_level become nomenclature_definition / nomenclature_definition_level.
+
+    Two precondition-guarded change sets make this safe for BOTH situations, with no dependency on a
+    previously-applied change set's checksum:
+      * Already deployed with budget_tree_type (upgrade) -> the first change set renames in place.
+      * Brand-new database (fresh install)              -> the second change set creates the tables.
+    Exactly one of the two runs; the other is marked-ran by its precondition.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <!-- Upgrade path: an already-deployed DB has budget_tree_type/budget_tree_level -> rename them
+         (data is preserved). Skipped (MARK_RAN) on databases that never had those tables. -->
+    <changeSet id="rename_tree_type_to_nomenclature_definition" author="zakaria el kotb">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="budget_tree_type"/>
+        </preConditions>
+        <sql>alter table budget_tree_type rename to nomenclature_definition;</sql>
+        <sql>alter table budget_tree_level rename to nomenclature_definition_level;</sql>
+        <sql>alter table nomenclature_definition_level rename column tree_type_id to nomenclature_definition_id;</sql>
+        <sql>alter table nomenclature_definition_level rename constraint uk_tree_level_type_position to uk_nomenclature_definition_level_position;</sql>
+        <sql>alter table nomenclature_definition_level rename constraint fk_tree_level_type to fk_nomenclature_definition_level;</sql>
+        <sql>alter index idx_tree_level_type rename to idx_nomenclature_definition_level;</sql>
+        <!-- Also rename the Postgres auto-named PK/unique constraints so an upgraded schema is
+             byte-identical to a freshly-created one (deterministic <table>_pkey / <table>_<col>_key). -->
+        <sql>alter table nomenclature_definition rename constraint budget_tree_type_pkey to nomenclature_definition_pkey;</sql>
+        <sql>alter table nomenclature_definition rename constraint budget_tree_type_name_key to nomenclature_definition_name_key;</sql>
+        <sql>alter table nomenclature_definition_level rename constraint budget_tree_level_pkey to nomenclature_definition_level_pkey;</sql>
+        <rollback>
+            <sql>alter table nomenclature_definition_level rename constraint nomenclature_definition_level_pkey to budget_tree_level_pkey;</sql>
+            <sql>alter table nomenclature_definition rename constraint nomenclature_definition_name_key to budget_tree_type_name_key;</sql>
+            <sql>alter table nomenclature_definition rename constraint nomenclature_definition_pkey to budget_tree_type_pkey;</sql>
+            <sql>alter index idx_nomenclature_definition_level rename to idx_tree_level_type;</sql>
+            <sql>alter table nomenclature_definition_level rename constraint fk_nomenclature_definition_level to fk_tree_level_type;</sql>
+            <sql>alter table nomenclature_definition_level rename constraint uk_nomenclature_definition_level_position to uk_tree_level_type_position;</sql>
+            <sql>alter table nomenclature_definition_level rename column nomenclature_definition_id to tree_type_id;</sql>
+            <sql>alter table nomenclature_definition_level rename to budget_tree_level;</sql>
+            <sql>alter table nomenclature_definition rename to budget_tree_type;</sql>
+        </rollback>
+    </changeSet>
+
+    <!-- Fresh-install path: no budget_tree_type ever existed and nomenclature_definition is not there
+         yet -> create the tables + seed the example. Skipped (MARK_RAN) right after the rename above. -->
+    <changeSet id="create_nomenclature_definition_fresh" author="zakaria el kotb">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="nomenclature_definition"/></not>
+        </preConditions>
+        <sql>
+            create table nomenclature_definition (
+                id uuid not null,
+                name varchar(255) not null unique,
+                description varchar(500),
+                active boolean not null,
+                primary key (id)
+            );
+        </sql>
+        <sql>
+            create table nomenclature_definition_level (
+                id uuid not null,
+                nomenclature_definition_id uuid not null,
+                position integer not null,
+                name varchar(100) not null,
+                primary key (id),
+                constraint uk_nomenclature_definition_level_position unique (nomenclature_definition_id, position)
+            );
+        </sql>
+        <sql>alter table nomenclature_definition_level add constraint fk_nomenclature_definition_level
+              foreign key (nomenclature_definition_id) references nomenclature_definition (id);</sql>
+        <sql>create index idx_nomenclature_definition_level on nomenclature_definition_level (nomenclature_definition_id);</sql>
+        <!-- Example: Chapitre -> Article -> Paragraphe -> Ligne (deletable by an admin/CdG). -->
+        <insert tableName="nomenclature_definition">
+            <column name="id" value="00000000-0000-0000-0000-000000000010"/>
+            <column name="name" value="Nomenclature standard (4 niveaux)"/>
+            <column name="description" value="Chapitre / Article / Paragraphe / Ligne budgétaire"/>
+            <column name="active" valueBoolean="true"/>
+        </insert>
+        <insert tableName="nomenclature_definition_level">
+            <column name="id" value="00000000-0000-0000-0000-000000000011"/>
+            <column name="nomenclature_definition_id" value="00000000-0000-0000-0000-000000000010"/>
+            <column name="position" valueNumeric="1"/>
+            <column name="name" value="Chapitre"/>
+        </insert>
+        <insert tableName="nomenclature_definition_level">
+            <column name="id" value="00000000-0000-0000-0000-000000000012"/>
+            <column name="nomenclature_definition_id" value="00000000-0000-0000-0000-000000000010"/>
+            <column name="position" valueNumeric="2"/>
+            <column name="name" value="Article"/>
+        </insert>
+        <insert tableName="nomenclature_definition_level">
+            <column name="id" value="00000000-0000-0000-0000-000000000013"/>
+            <column name="nomenclature_definition_id" value="00000000-0000-0000-0000-000000000010"/>
+            <column name="position" valueNumeric="3"/>
+            <column name="name" value="Paragraphe"/>
+        </insert>
+        <insert tableName="nomenclature_definition_level">
+            <column name="id" value="00000000-0000-0000-0000-000000000014"/>
+            <column name="nomenclature_definition_id" value="00000000-0000-0000-0000-000000000010"/>
+            <column name="position" valueNumeric="4"/>
+            <column name="name" value="Ligne"/>
+        </insert>
+        <rollback>
+            <sql>drop table if exists nomenclature_definition_level cascade;</sql>
+            <sql>drop table if exists nomenclature_definition cascade;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

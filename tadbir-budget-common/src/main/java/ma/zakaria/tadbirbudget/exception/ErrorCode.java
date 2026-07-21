@@ -75,6 +75,12 @@ public enum ErrorCode {
     ORG_UNIT_HAS_CHILDREN,
     ORG_UNIT_HAS_USERS,
 
+    // ── Budget — nomenclature definition (level template) ────────────────────
+    NOMENCLATURE_DEFINITION_NOT_FOUND,
+    NOMENCLATURE_DEFINITION_NAME_EXISTS,
+    NOMENCLATURE_DEFINITION_NO_LEVELS,
+    NOMENCLATURE_DEFINITION_LEVEL_DUPLICATE,
+
     // ── Files ────────────────────────────────────────────────────────────────
     FILE_EMPTY,
     FILE_TOO_LARGE,

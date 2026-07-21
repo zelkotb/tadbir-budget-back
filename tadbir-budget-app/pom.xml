@@ -41,6 +41,10 @@
         </dependency>
         <dependency>
             <groupId>ma.zakaria</groupId>
+            <artifactId>tadbir-budget-nomenclature</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ma.zakaria</groupId>
             <artifactId>tadbir-budget-workflow</artifactId>
         </dependency>
         <dependency>

@@ -12,6 +12,8 @@ Persistence layer. Owns everything database-related: JPA entities, Spring Data r
 |---|---|---|---|
 | `User` | `users` | ✓ `@Audited` | Application user, implements `UserDetails`. Logs in with `uid`; roles stored as CSV via `StringListConverter`; belongs to an `org_unit` (nullable). |
 | `OrgUnit` | `org_unit` | ✓ `@Audited` | Organisation node (pôle/direction/département…), freely nested via `parent_id` + materialized `path` (`path`/`depth` not audited). |
+| `NomenclatureDefinition` | `nomenclature_definition` | — | Budget level template (pre-config): Chapitre→Article→…→Ligne. |
+| `NomenclatureDefinitionLevel` | `nomenclature_definition_level` | — | One ordered level of a definition (deepest = leaf). |
 | `RefreshToken` | `refresh_tokens` | — | Refresh token linked to a user |
 | `AuthAudit` | `auth_audit` | — | Append-only auth event log (LOGIN/LOGOUT/TOKEN_REFRESH) |
 | `RevInfo` | `revinfo` | — | Custom Envers revision entity — stores the actor (uid) + IP of who made the change |
@@ -52,12 +54,20 @@ master.xml
     ├── 2026_07_17_baseline.xml        pgcrypto + pg_trgm, revinfo, users (+ audit),
     │                                  seed admin (uid=pm.admin), refresh_tokens,
     │                                  auth_audit, notification (+ audit), shedlock
-    └── 2026_07_20_org_structure.xml   org_unit (+ audit), users.org_unit_id
+    ├── 2026_07_20_org_structure.xml   org_unit (+ audit), users.org_unit_id
+    └── 2026_07_21_nomenclature_definition.xml  rename budget_tree_* → nomenclature_definition[_level]
+                                                (upgrade) OR create them fresh (new DB) via preconditions
 ```
 
-A single clean baseline creates every reusable table. Changelogs live in this module's JAR
-resources; `LiquibaseAutoConfiguration` finds `classpath:db/changelog/master.xml` automatically.
-**Never edit a deployed changeset — add a new dated one** (e.g. `slave/2026_08_01.xml`).
+> The tree-type tables shipped in an earlier build as `budget_tree_type` / `budget_tree_level`;
+> the `2026_07_21` change set renames them in place on already-deployed databases (and creates them
+> under the new name on fresh ones) — the earlier change set is intentionally no longer in the
+> changelog.
+
+Changelogs live in this module's JAR resources; `LiquibaseAutoConfiguration` finds
+`classpath:db/changelog/master.xml` automatically. **Never edit a deployed changeset — add a new
+dated one** (e.g. `slave/2026_08_01.xml`); use `<preConditions>` when a change must adapt to
+already-deployed vs fresh databases.
 
 ---
 

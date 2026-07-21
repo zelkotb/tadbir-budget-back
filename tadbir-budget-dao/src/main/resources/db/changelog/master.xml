@@ -19,4 +19,5 @@
 
     <include file="db/changelog/slave/2026_07_17_baseline.xml"/>
     <include file="db/changelog/slave/2026_07_20_org_structure.xml"/>
+    <include file="db/changelog/slave/2026_07_21_nomenclature_definition.xml"/>
 </databaseChangeLog>

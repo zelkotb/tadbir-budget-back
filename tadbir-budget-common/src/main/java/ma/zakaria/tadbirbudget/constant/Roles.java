@@ -37,6 +37,9 @@ public final class Roles {
     public final String IS_DIRECTION_GENERALE  = "hasRole('DIRECTION_GENERALE')";
     public final String IS_CONTROLE_GESTION    = "hasRole('CONTROLE_GESTION')";
 
+    /** Budget configuration (nomenclature, tree types, campaigns): admin or contrôle de gestion. */
+    public final String IS_ADMIN_OR_CG = "hasAnyRole('ADMIN', 'CONTROLE_GESTION')";
+
     /**
      * Any authenticated business user may take part in a workflow — each BPMN decides, via its
      * task {@code candidateGroups}, which role acts on which step. This guard simply keeps the
