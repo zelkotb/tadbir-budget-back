@@ -12,6 +12,7 @@ package ma.zakaria.tadbirbudget.exception;
 
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -147,6 +148,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         log.warn("No resource found: {}", ex.getMessage());
         return toObjectResponse(build(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND));
+    }
+
+    // ── Database constraint violation (FK still referenced, unique clash, …) ──
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex) {
+        // Log the specific cause only (no full stack) — this is a client-side conflict, not a bug.
+        log.warn("Data integrity violation: {}", ex.getMostSpecificCause().getMessage());
+        return build(ErrorCode.DATA_INTEGRITY_VIOLATION, HttpStatus.CONFLICT);
     }
 
     // ── Catch-all ────────────────────────────────────────────────────────────

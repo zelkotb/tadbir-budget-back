@@ -35,6 +35,8 @@
         <module>tadbir-budget-user</module>
         <module>tadbir-budget-org</module>
         <module>tadbir-budget-nomenclature</module>
+        <module>tadbir-budget-project</module>
+        <module>tadbir-budget-settings</module>
         <module>tadbir-budget-notification</module>
         <module>tadbir-budget-workflow</module>
         <module>tadbir-budget-files</module>
@@ -90,6 +92,16 @@
             <dependency>
                 <groupId>ma.zakaria</groupId>
                 <artifactId>tadbir-budget-nomenclature</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ma.zakaria</groupId>
+                <artifactId>tadbir-budget-project</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ma.zakaria</groupId>
+                <artifactId>tadbir-budget-settings</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

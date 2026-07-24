@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+
+    This source code is the exclusive property of Zakaria El Kotb.
+    Unauthorized copying, modification, distribution, or use of this file,
+    via any medium, is strictly prohibited without the prior written
+    permission of the copyright owner.
+
+    Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+
+-->
+<!--
+    Projects (Stage C): a project/program owned by an org unit, run by a chef de projet, with a
+    team. Both project and project_member are Envers-audited (attribute every change to its actor).
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="create_project" author="zakaria el kotb">
+        <sql>
+            create table project (
+                id uuid not null,
+                name varchar(255) not null,
+                objectifs text,
+                description text,
+                type varchar(20) not null check (type in ('PROJECT','PROGRAM')),
+                status varchar(20) not null check (status in ('ACTIVE','TERMINATED','ARCHIVED')),
+                chef_projet_id uuid not null,
+                org_unit_id uuid not null,
+                termination_year integer,
+                created_by varchar(255),
+                created_at timestamp(6) with time zone not null,
+                primary key (id)
+            );
+        </sql>
+        <sql>alter table project add constraint fk_project_chef foreign key (chef_projet_id) references users (id);</sql>
+        <sql>alter table project add constraint fk_project_org_unit foreign key (org_unit_id) references org_unit (id);</sql>
+        <sql>create index idx_project_org_unit on project (org_unit_id);</sql>
+        <sql>create index idx_project_chef on project (chef_projet_id);</sql>
+        <sql>create index idx_project_status on project (status);</sql>
+        <rollback>
+            <sql>drop table if exists project cascade;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="create_project_audit" author="zakaria el kotb">
+        <sql>
+            create table project_audit (
+                id uuid not null,
+                rev integer not null,
+                revtype smallint,
+                name varchar(255),
+                objectifs text,
+                description text,
+                type varchar(20),
+                status varchar(20),
+                chef_projet_id uuid,
+                org_unit_id uuid,
+                termination_year integer,
+                created_by varchar(255),
+                created_at timestamp(6) with time zone,
+                primary key (rev, id)
+            );
+        </sql>
+        <sql>alter table project_audit add constraint fk_project_audit_revinfo foreign key (rev) references revinfo (id);</sql>
+        <rollback>
+            <sql>drop table if exists project_audit cascade;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="create_project_member" author="zakaria el kotb">
+        <sql>
+            create table project_member (
+                id uuid not null,
+                project_id uuid not null,
+                user_id uuid not null,
+                function_label varchar(100),
+                primary key (id),
+                constraint uk_project_member unique (project_id, user_id)
+            );
+        </sql>
+        <sql>alter table project_member add constraint fk_member_project foreign key (project_id) references project (id);</sql>
+        <sql>alter table project_member add constraint fk_member_user foreign key (user_id) references users (id);</sql>
+        <sql>create index idx_member_project on project_member (project_id);</sql>
+        <rollback>
+            <sql>drop table if exists project_member cascade;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="create_project_member_audit" author="zakaria el kotb">
+        <sql>
+            create table project_member_audit (
+                id uuid not null,
+                rev integer not null,
+                revtype smallint,
+                project_id uuid,
+                user_id uuid,
+                function_label varchar(100),
+                primary key (rev, id)
+            );
+        </sql>
+        <sql>alter table project_member_audit add constraint fk_member_audit_revinfo foreign key (rev) references revinfo (id);</sql>
+        <rollback>
+            <sql>drop table if exists project_member_audit cascade;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

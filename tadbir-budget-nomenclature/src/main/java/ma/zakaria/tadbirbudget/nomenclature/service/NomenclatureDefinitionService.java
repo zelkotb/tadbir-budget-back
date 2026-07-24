@@ -20,6 +20,7 @@ import ma.zakaria.tadbirbudget.nomenclature.dto.NomenclatureDefinitionResponse;
 import ma.zakaria.tadbirbudget.nomenclature.dto.UpdateNomenclatureDefinitionInput;
 import ma.zakaria.tadbirbudget.repository.NomenclatureDefinitionLevelRepository;
 import ma.zakaria.tadbirbudget.repository.NomenclatureDefinitionRepository;
+import ma.zakaria.tadbirbudget.repository.NomenclatureRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +46,7 @@ public class NomenclatureDefinitionService {
 
     private final NomenclatureDefinitionRepository      definitionRepository;
     private final NomenclatureDefinitionLevelRepository levelRepository;
+    private final NomenclatureRepository                nomenclatureRepository;
 
     // ── Reads ─────────────────────────────────────────────────────────────────
 
@@ -120,7 +122,10 @@ public class NomenclatureDefinitionService {
     @Transactional
     public void delete(UUID id) {
         NomenclatureDefinition definition = load(id);
-        // A later stage will refuse deletion while a real budget uses this definition.
+        // A definition can't be deleted while a real nomenclature is built on it.
+        if (nomenclatureRepository.existsByNomenclatureDefinitionId(id)) {
+            throw new CustomException(ErrorCode.NOMENCLATURE_DEFINITION_IN_USE, HttpStatus.CONFLICT);
+        }
         levelRepository.deleteByNomenclatureDefinitionId(id);
         definitionRepository.delete(definition);
     }

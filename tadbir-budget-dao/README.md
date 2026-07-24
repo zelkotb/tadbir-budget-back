@@ -14,6 +14,12 @@ Persistence layer. Owns everything database-related: JPA entities, Spring Data r
 | `OrgUnit` | `org_unit` | ✓ `@Audited` | Organisation node (pôle/direction/département…), freely nested via `parent_id` + materialized `path` (`path`/`depth` not audited). |
 | `NomenclatureDefinition` | `nomenclature_definition` | — | Budget level template (pre-config): Chapitre→Article→…→Ligne. |
 | `NomenclatureDefinitionLevel` | `nomenclature_definition_level` | — | One ordered level of a definition (deepest = leaf). |
+| `Nomenclature` | `nomenclature` | — | Real filled tree built from a definition; DRAFT→FIXED→ARCHIVED. |
+| `NomenclatureRubrique` | `nomenclature_rubrique` | — | A node of a nomenclature tree (code+label, level, leaf). |
+| `RubriqueAssignment` | `rubrique_assignment` | — | Assigns a rubrique to an org unit (many-to-many; grants the subtree). |
+| `Project` | `project` | ✓ `@Audited` | Project/program (status, chef, org unit, start date, termination). NOT_STARTED→ACTIVE→TERMINATED→ARCHIVED. |
+| `ProjectMember` | `project_member` | ✓ `@Audited` | A team member of a project (user + function). |
+| `AppSetting` | `app_setting` | — | Company-wide key/value setting (paramétrage). |
 | `RefreshToken` | `refresh_tokens` | — | Refresh token linked to a user |
 | `AuthAudit` | `auth_audit` | — | Append-only auth event log (LOGIN/LOGOUT/TOKEN_REFRESH) |
 | `RevInfo` | `revinfo` | — | Custom Envers revision entity — stores the actor (uid) + IP of who made the change |
@@ -55,8 +61,18 @@ master.xml
     │                                  seed admin (uid=pm.admin), refresh_tokens,
     │                                  auth_audit, notification (+ audit), shedlock
     ├── 2026_07_20_org_structure.xml   org_unit (+ audit), users.org_unit_id
-    └── 2026_07_21_nomenclature_definition.xml  rename budget_tree_* → nomenclature_definition[_level]
-                                                (upgrade) OR create them fresh (new DB) via preconditions
+    ├── 2026_07_21_nomenclature_definition.xml  rename budget_tree_* → nomenclature_definition[_level]
+    │                                           (upgrade) OR create them fresh (new DB) via preconditions
+    ├── 2026_07_22_nomenclature.xml    nomenclature, nomenclature_rubrique (the real tree)
+    ├── 2026_07_22_rubrique_sibling_code.xml  rubrique code unique per-sibling (drop whole-tree
+    │                                         constraint → two partial indexes)
+    ├── 2026_07_23_rubrique_assignment.xml  rubrique_assignment (rubrique ↔ org_unit)
+    ├── 2026_07_23_nomenclature_versioning.xml  nomenclature version/lineage/previous_version_id;
+    │                                           drop global name-unique (versions share a name)
+    ├── 2026_07_23_project.xml         project (+ audit), project_member (+ audit)
+    ├── 2026_07_24_settings.xml        app_setting (+ seed project.terminology)
+    ├── 2026_07_24_project_drop_type.xml  drop project.type (now a company-wide setting)
+    └── 2026_07_24_project_lifecycle.xml  project.start_date + widen status check (NOT_STARTED)
 ```
 
 > The tree-type tables shipped in an earlier build as `budget_tree_type` / `budget_tree_level`;

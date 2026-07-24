@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+
+    This source code is the exclusive property of Zakaria El Kotb.
+    Unauthorized copying, modification, distribution, or use of this file,
+    via any medium, is strictly prohibited without the prior written
+    permission of the copyright owner.
+
+    Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+
+-->
+<!--
+    Project lifecycle: projects are created NOT_STARTED and the responsible starts them (→ ACTIVE),
+    recording a start date. Adds the start_date column (project + audit) and widens the status
+    CHECK constraint to allow NOT_STARTED. Written as a forward migration (drop + recreate the
+    auto-named project_status_check) so it is safe whether the project table was already deployed
+    with the old three-value check or is being created fresh.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="project_add_start_date" author="zakaria el kotb">
+        <sql>alter table project add column if not exists start_date date;</sql>
+        <sql>alter table project_audit add column if not exists start_date date;</sql>
+        <rollback>
+            <sql>alter table project drop column if exists start_date;</sql>
+            <sql>alter table project_audit drop column if exists start_date;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="project_status_allow_not_started" author="zakaria el kotb">
+        <sql>alter table project drop constraint if exists project_status_check;</sql>
+        <sql>
+            alter table project add constraint project_status_check
+                check (status in ('NOT_STARTED','ACTIVE','TERMINATED','ARCHIVED'));
+        </sql>
+        <rollback>
+            <sql>alter table project drop constraint if exists project_status_check;</sql>
+            <sql>
+                alter table project add constraint project_status_check
+                    check (status in ('ACTIVE','TERMINATED','ARCHIVED'));
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

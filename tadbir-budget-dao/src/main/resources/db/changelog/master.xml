@@ -20,4 +20,12 @@
     <include file="db/changelog/slave/2026_07_17_baseline.xml"/>
     <include file="db/changelog/slave/2026_07_20_org_structure.xml"/>
     <include file="db/changelog/slave/2026_07_21_nomenclature_definition.xml"/>
+    <include file="db/changelog/slave/2026_07_22_nomenclature.xml"/>
+    <include file="db/changelog/slave/2026_07_22_rubrique_sibling_code.xml"/>
+    <include file="db/changelog/slave/2026_07_23_rubrique_assignment.xml"/>
+    <include file="db/changelog/slave/2026_07_23_nomenclature_versioning.xml"/>
+    <include file="db/changelog/slave/2026_07_23_project.xml"/>
+    <include file="db/changelog/slave/2026_07_24_settings.xml"/>
+    <include file="db/changelog/slave/2026_07_24_project_drop_type.xml"/>
+    <include file="db/changelog/slave/2026_07_24_project_lifecycle.xml"/>
 </databaseChangeLog>

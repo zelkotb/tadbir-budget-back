@@ -19,7 +19,9 @@ tadbir-budget-back/
 ├── tadbir-budget-auth-jwt/      JWT authentication + Spring Security config
 ├── tadbir-budget-user/          User management (CRUD, password, roles, Envers diff audit)
 ├── tadbir-budget-org/           Organisation structure (pôles/directions/départements tree)
-├── tadbir-budget-nomenclature/  Budget nomenclature definitions (level templates: Chapitre→…→Ligne)
+├── tadbir-budget-nomenclature/  Budget nomenclature definitions + real nomenclatures (rubrique trees)
+├── tadbir-budget-project/       Projects (chef, team, org scoping, lifecycle)
+├── tadbir-budget-settings/      Company-wide settings (paramétrage) — key/value store
 ├── tadbir-budget-files/         Generic file storage (traversal-safe), Excel/PDF/JasperReports export
 ├── tadbir-budget-notification/  Durable notification queue (e-mail + in-app), dispatcher, templating
 ├── tadbir-budget-workflow/      Flowable engine wrapper: runtime API, listeners, event bridge
@@ -37,6 +39,8 @@ dao ← common
 ├── user          ← common + dao
 ├── org           ← common + dao
 ├── nomenclature  ← common + dao
+├── project       ← common + dao
+├── settings      ← common + dao
 ├── files         ← common
 ├── notification  ← common + dao
 └── workflow      ← common + dao + notification

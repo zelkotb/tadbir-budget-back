@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+
+    This source code is the exclusive property of Zakaria El Kotb.
+    Unauthorized copying, modification, distribution, or use of this file,
+    via any medium, is strictly prohibited without the prior written
+    permission of the copyright owner.
+
+    Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+
+-->
+<!--
+    Budget nomenclature (Stage B): the real filled tree (Fonctionnement -> Marina -> Achat) built
+    from a nomenclature_definition, and its rubriques (tree nodes). Lifecycle DRAFT -> FIXED ->
+    ARCHIVED; leaves (deepest level) will later carry the amounts.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="create_nomenclature" author="zakaria el kotb">
+        <sql>
+            create table nomenclature (
+                id uuid not null,
+                name varchar(255) not null unique,
+                description varchar(500),
+                nomenclature_definition_id uuid not null,
+                definition_depth integer not null,
+                status varchar(20) not null check (status in ('DRAFT','FIXED','ARCHIVED')),
+                fixed_at timestamp(6) with time zone,
+                fixed_by varchar(255),
+                primary key (id)
+            );
+        </sql>
+        <sql>alter table nomenclature add constraint fk_nomenclature_definition
+              foreign key (nomenclature_definition_id) references nomenclature_definition (id);</sql>
+        <sql>create index idx_nomenclature_definition on nomenclature (nomenclature_definition_id);</sql>
+        <rollback>
+            <sql>drop table if exists nomenclature cascade;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="create_nomenclature_rubrique" author="zakaria el kotb">
+        <sql>
+            create table nomenclature_rubrique (
+                id uuid not null,
+                nomenclature_id uuid not null,
+                parent_id uuid,
+                level_position integer not null,
+                code varchar(50) not null,
+                label varchar(255) not null,
+                leaf boolean not null,
+                primary key (id),
+                constraint uk_rubrique_nomenclature_code unique (nomenclature_id, code)
+            );
+        </sql>
+        <sql>alter table nomenclature_rubrique add constraint fk_rubrique_nomenclature
+              foreign key (nomenclature_id) references nomenclature (id);</sql>
+        <sql>alter table nomenclature_rubrique add constraint fk_rubrique_parent
+              foreign key (parent_id) references nomenclature_rubrique (id);</sql>
+        <sql>create index idx_rubrique_nomenclature on nomenclature_rubrique (nomenclature_id);</sql>
+        <sql>create index idx_rubrique_parent on nomenclature_rubrique (parent_id);</sql>
+        <rollback>
+            <sql>drop table if exists nomenclature_rubrique cascade;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

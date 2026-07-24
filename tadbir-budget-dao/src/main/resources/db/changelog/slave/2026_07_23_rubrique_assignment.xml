@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+
+    This source code is the exclusive property of Zakaria El Kotb.
+    Unauthorized copying, modification, distribution, or use of this file,
+    via any medium, is strictly prohibited without the prior written
+    permission of the copyright owner.
+
+    Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+
+-->
+<!--
+    Rubrique -> org-unit assignment: which budget rubriques an org unit (and everything below it)
+    may use when building a project. Many-to-many; assigning a node implicitly grants its subtree.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="create_rubrique_assignment" author="zakaria el kotb">
+        <sql>
+            create table rubrique_assignment (
+                id uuid not null,
+                rubrique_id uuid not null,
+                nomenclature_id uuid not null,
+                org_unit_id uuid not null,
+                assigned_by varchar(255),
+                assigned_at timestamp(6) with time zone,
+                primary key (id),
+                constraint uk_rubrique_assignment unique (rubrique_id, org_unit_id)
+            );
+        </sql>
+        <sql>alter table rubrique_assignment add constraint fk_assignment_rubrique
+              foreign key (rubrique_id) references nomenclature_rubrique (id);</sql>
+        <sql>alter table rubrique_assignment add constraint fk_assignment_nomenclature
+              foreign key (nomenclature_id) references nomenclature (id);</sql>
+        <sql>alter table rubrique_assignment add constraint fk_assignment_org_unit
+              foreign key (org_unit_id) references org_unit (id);</sql>
+        <sql>create index idx_assignment_nomenclature on rubrique_assignment (nomenclature_id);</sql>
+        <sql>create index idx_assignment_org_unit on rubrique_assignment (org_unit_id);</sql>
+        <rollback>
+            <sql>drop table if exists rubrique_assignment cascade;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+
+    This source code is the exclusive property of Zakaria El Kotb.
+    Unauthorized copying, modification, distribution, or use of this file,
+    via any medium, is strictly prohibited without the prior written
+    permission of the copyright owner.
+
+    Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+
+-->
+<!--
+    Rubrique code uniqueness: from whole-tree to per-sibling (same parent). The original change set
+    (2026_07_22_nomenclature.xml) created a whole-tree unique constraint uk_rubrique_nomenclature_code;
+    this replaces it with two partial unique indexes (roots + siblings). Existing data always
+    satisfies the looser rule, so this never fails on deployed rows. Runs identically on already-
+    deployed and fresh databases (both have the constraint after the create change set).
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="rubrique_code_unique_per_sibling" author="zakaria el kotb">
+        <sql>alter table nomenclature_rubrique drop constraint uk_rubrique_nomenclature_code;</sql>
+        <!-- Two partial indexes because SQL unique constraints treat NULL parents (roots) as distinct. -->
+        <sql>create unique index uk_rubrique_root_code on nomenclature_rubrique
+              (nomenclature_id, lower(code)) where parent_id is null;</sql>
+        <sql>create unique index uk_rubrique_sibling_code on nomenclature_rubrique
+              (nomenclature_id, parent_id, lower(code)) where parent_id is not null;</sql>
+        <rollback>
+            <sql>drop index if exists uk_rubrique_sibling_code;</sql>
+            <sql>drop index if exists uk_rubrique_root_code;</sql>
+            <sql>alter table nomenclature_rubrique add constraint uk_rubrique_nomenclature_code
+                  unique (nomenclature_id, code);</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

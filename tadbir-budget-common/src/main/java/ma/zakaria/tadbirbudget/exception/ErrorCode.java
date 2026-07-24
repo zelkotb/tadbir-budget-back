@@ -52,6 +52,8 @@ public enum ErrorCode {
     METHOD_NOT_ALLOWED,
     RATE_LIMIT_EXCEEDED,
     WEAK_PASSWORD,
+    /** Generic fallback for a DB constraint violation (FK still referenced, unique clash, …). */
+    DATA_INTEGRITY_VIOLATION,
 
     // ── Workflow ─────────────────────────────────────────────────────────────
     PROCESS_NOT_FOUND,
@@ -69,6 +71,10 @@ public enum ErrorCode {
     // ── Notification ─────────────────────────────────────────────────────────
     NOTIFICATION_NOT_FOUND,
 
+    // ── Projects ─────────────────────────────────────────────────────────────
+    PROJECT_NOT_FOUND,
+    PROJECT_INVALID_STATUS,
+
     // ── Organisation structure ───────────────────────────────────────────────
     ORG_UNIT_NOT_FOUND,
     ORG_UNIT_CYCLE,
@@ -80,6 +86,23 @@ public enum ErrorCode {
     NOMENCLATURE_DEFINITION_NAME_EXISTS,
     NOMENCLATURE_DEFINITION_NO_LEVELS,
     NOMENCLATURE_DEFINITION_LEVEL_DUPLICATE,
+    NOMENCLATURE_DEFINITION_IN_USE,
+
+    // ── Budget — nomenclature (real tree) ────────────────────────────────────
+    NOMENCLATURE_NOT_FOUND,
+    NOMENCLATURE_NAME_EXISTS,
+    NOMENCLATURE_NOT_DRAFT,
+    NOMENCLATURE_EMPTY,
+    RUBRIQUE_NOT_FOUND,
+    RUBRIQUE_CODE_EXISTS,
+    RUBRIQUE_PARENT_IS_LEAF,
+    RUBRIQUE_HAS_CHILDREN,
+    RUBRIQUE_WRONG_NOMENCLATURE,
+    NOMENCLATURE_NOT_FIXED,
+    NOMENCLATURE_ARCHIVED,
+    RUBRIQUE_HAS_ASSIGNMENTS,
+    RUBRIQUE_ASSIGNMENT_EXISTS,
+    RUBRIQUE_ASSIGNMENT_NOT_FOUND,
 
     // ── Files ────────────────────────────────────────────────────────────────
     FILE_EMPTY,
@@ -88,6 +111,10 @@ public enum ErrorCode {
     FILE_NOT_FOUND,
     INVALID_FILE_PATH,
     FILE_STORAGE_ERROR,
+
+    // ── Settings (paramétrage) ───────────────────────────────────────────────
+    SETTING_NOT_FOUND,
+    SETTING_INVALID_VALUE,
 
     // ── Generic ──────────────────────────────────────────────────────────────
     INTERNAL_ERROR

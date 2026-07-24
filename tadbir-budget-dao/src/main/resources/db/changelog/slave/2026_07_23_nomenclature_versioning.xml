@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+
+    This source code is the exclusive property of Zakaria El Kotb.
+    Unauthorized copying, modification, distribution, or use of this file,
+    via any medium, is strictly prohibited without the prior written
+    permission of the copyright owner.
+
+    Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+
+-->
+<!--
+    Nomenclature versioning: a nomenclature can be cloned into a new version. Versions of the same
+    "lineage" share a name and a lineage_id; the version number distinguishes them, and
+    previous_version_id links a version to the one it was cloned from. Because versions share a name,
+    the original global unique(name) constraint is dropped (uniqueness is enforced per lineage in the
+    service). Runs the same on already-deployed and fresh databases.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="nomenclature_add_versioning" author="zakaria el kotb">
+        <sql>alter table nomenclature add column version integer;</sql>
+        <sql>update nomenclature set version = 1 where version is null;</sql>
+        <sql>alter table nomenclature alter column version set not null;</sql>
+        <sql>alter table nomenclature add column lineage_id uuid;</sql>
+        <sql>update nomenclature set lineage_id = id where lineage_id is null;</sql>
+        <sql>alter table nomenclature alter column lineage_id set not null;</sql>
+        <sql>alter table nomenclature add column previous_version_id uuid;</sql>
+        <sql>alter table nomenclature add constraint fk_nomenclature_previous
+              foreign key (previous_version_id) references nomenclature (id);</sql>
+        <sql>create index idx_nomenclature_lineage on nomenclature (lineage_id);</sql>
+        <!-- Versions share a name; global uniqueness (auto-named nomenclature_name_key) is dropped. -->
+        <sql>alter table nomenclature drop constraint nomenclature_name_key;</sql>
+        <rollback>
+            <sql>alter table nomenclature add constraint nomenclature_name_key unique (name);</sql>
+            <sql>drop index if exists idx_nomenclature_lineage;</sql>
+            <sql>alter table nomenclature drop constraint fk_nomenclature_previous;</sql>
+            <sql>alter table nomenclature drop column if exists previous_version_id;</sql>
+            <sql>alter table nomenclature drop column if exists lineage_id;</sql>
+            <sql>alter table nomenclature drop column if exists version;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+
+    This source code is the exclusive property of Zakaria El Kotb.
+    Unauthorized copying, modification, distribution, or use of this file,
+    via any medium, is strictly prohibited without the prior written
+    permission of the copyright owner.
+
+    Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+
+-->
+<!--
+    Project/Program is no longer a per-project field — it is a company-wide setting
+    (app_setting 'project.terminology'). Drop the project.type column. Written as a forward
+    migration so it is safe whether the project tables were already deployed or not. (If the
+    Stage C project change set was never deployed anywhere, this + the type column can be squashed
+    into 2026_07_23_project.xml instead.)
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="project_drop_type" author="zakaria el kotb">
+        <sql>alter table project drop column type;</sql>
+        <sql>alter table project_audit drop column type;</sql>
+        <rollback>
+            <sql>alter table project add column type varchar(20);</sql>
+            <sql>update project set type = 'PROJECT' where type is null;</sql>
+            <sql>alter table project alter column type set not null;</sql>
+            <sql>alter table project add constraint project_type_check check (type in ('PROJECT','PROGRAM'));</sql>
+            <sql>alter table project_audit add column type varchar(20);</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -31,6 +31,14 @@ public interface OrgUnitRepository extends JpaRepository<OrgUnit, UUID> {
     List<OrgUnit> findByPathStartingWithOrderByPathAsc(String pathPrefix);
 
     /**
+     * The given unit and all its ancestors — every unit whose path is a prefix of {@code targetPath}
+     * (i.e. {@code targetPath LIKE path || '%'}). Used to resolve "which assignments reach this unit"
+     * (an assignment to any ancestor is usable here).
+     */
+    @Query(value = "SELECT * FROM org_unit WHERE :targetPath LIKE path || '%'", nativeQuery = true)
+    List<OrgUnit> findSelfAndAncestorsByPath(@Param("targetPath") String targetPath);
+
+    /**
      * Bulk-rewrites the materialized path (and depth) of a moved node's whole subtree in one
      * statement. Runs outside the persistence context ({@code clearAutomatically}) and bypasses
      * Envers — fine, because path/depth are derived bookkeeping ({@code @NotAudited}); the
