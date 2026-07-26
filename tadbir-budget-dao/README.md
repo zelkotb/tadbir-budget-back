@@ -17,8 +17,10 @@ Persistence layer. Owns everything database-related: JPA entities, Spring Data r
 | `Nomenclature` | `nomenclature` | — | Real filled tree built from a definition; DRAFT→FIXED→ARCHIVED. |
 | `NomenclatureRubrique` | `nomenclature_rubrique` | — | A node of a nomenclature tree (code+label, level, leaf). |
 | `RubriqueAssignment` | `rubrique_assignment` | — | Assigns a rubrique to an org unit (many-to-many; grants the subtree). |
-| `Project` | `project` | ✓ `@Audited` | Project/program (status, chef, org unit, start date, termination). NOT_STARTED→ACTIVE→TERMINATED→ARCHIVED. |
+| `Project` | `project` | ✓ `@Audited` | Project/program (status, chef, org unit, start date, termination date). NOT_STARTED→ACTIVE→TERMINATED→ARCHIVED. |
 | `ProjectMember` | `project_member` | ✓ `@Audited` | A team member of a project (user + function). |
+| `ProjectDocument` | `project_document` | — | A file attached to a project (any type); stores the storage key + metadata + uploader. |
+| `ProjectPhase` | `project_phase` | ✓ `@Audited` | A phase (étape) of a project: title, status, weight (poids), completion, current + baseline schedule. |
 | `AppSetting` | `app_setting` | — | Company-wide key/value setting (paramétrage). |
 | `RefreshToken` | `refresh_tokens` | — | Refresh token linked to a user |
 | `AuthAudit` | `auth_audit` | — | Append-only auth event log (LOGIN/LOGOUT/TOKEN_REFRESH) |
@@ -72,7 +74,10 @@ master.xml
     ├── 2026_07_23_project.xml         project (+ audit), project_member (+ audit)
     ├── 2026_07_24_settings.xml        app_setting (+ seed project.terminology)
     ├── 2026_07_24_project_drop_type.xml  drop project.type (now a company-wide setting)
-    └── 2026_07_24_project_lifecycle.xml  project.start_date + widen status check (NOT_STARTED)
+    ├── 2026_07_24_project_lifecycle.xml  project.start_date + widen status check (NOT_STARTED)
+    ├── 2026_07_26_project_terminate_date.xml  termination_year → termination_date (full date)
+    ├── 2026_07_26_project_document.xml   project_document (files of any type, FK cascade)
+    └── 2026_07_26_project_phase.xml      project_phase (+ audit): phases with weight/completion + baseline
 ```
 
 > The tree-type tables shipped in an earlier build as `budget_tree_type` / `budget_tree_level`;

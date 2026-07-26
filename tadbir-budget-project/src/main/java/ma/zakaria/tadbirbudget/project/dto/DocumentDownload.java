@@ -10,15 +10,8 @@
  */
 package ma.zakaria.tadbirbudget.project.dto;
 
-import jakarta.validation.constraints.NotNull;
-import lombok.Data;
+import org.springframework.core.io.Resource;
 
-import java.time.LocalDate;
-
-/** Terminate a project as of a given end date (the full date, not just the year). */
-@Data
-public class TerminateProjectInput {
-
-    @NotNull
-    private LocalDate terminationDate;
+/** A document's bytes plus the metadata needed to build the download response. */
+public record DocumentDownload(Resource resource, String filename, String contentType) {
 }

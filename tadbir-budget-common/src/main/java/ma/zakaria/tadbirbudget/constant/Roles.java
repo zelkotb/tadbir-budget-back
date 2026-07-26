@@ -21,6 +21,7 @@ public final class Roles {
 
     public final String ADMIN               = "ROLE_ADMIN";
     public final String EMPLOYEE            = "ROLE_EMPLOYEE";
+    public final String CELL_MANAGER        = "ROLE_CELL_MANAGER";
     public final String SERVICE_MANAGER     = "ROLE_SERVICE_MANAGER";
     public final String DEPARTMENT_MANAGER  = "ROLE_DEPARTMENT_MANAGER";
     public final String DIRECTION_MANAGER   = "ROLE_DIRECTION_MANAGER";
@@ -32,6 +33,7 @@ public final class Roles {
 
     public final String IS_ADMIN               = "hasRole('ADMIN')";
     public final String IS_EMPLOYEE            = "hasRole('EMPLOYEE')";
+    public final String IS_CELL_MANAGER        = "hasRole('CELL_MANAGER')";
     public final String IS_SERVICE_MANAGER     = "hasRole('SERVICE_MANAGER')";
     public final String IS_DEPARTMENT_MANAGER  = "hasRole('DEPARTMENT_MANAGER')";
     public final String IS_DIRECTION_MANAGER   = "hasRole('DIRECTION_MANAGER')";
@@ -43,11 +45,11 @@ public final class Roles {
     public final String IS_ADMIN_OR_CG = "hasAnyRole('ADMIN', 'CONTROLE_GESTION')";
 
     /**
-     * May create / manage projects: the operational manager tiers (service → pôle) plus admin.
+     * May create / manage projects: the operational manager tiers (cell → pôle) plus admin.
      * Direction générale is deliberately excluded — it supervises (reads), it does not create.
      * Fine-grained "in which org unit" scoping is enforced in the service.
      */
-    public final String IS_PROJECT_CREATOR = "hasAnyRole('ADMIN', 'SERVICE_MANAGER', "
+    public final String IS_PROJECT_CREATOR = "hasAnyRole('ADMIN', 'CELL_MANAGER', 'SERVICE_MANAGER', "
             + "'DEPARTMENT_MANAGER', 'DIRECTION_MANAGER', 'POLE_MANAGER')";
 
     /**
@@ -55,7 +57,7 @@ public final class Roles {
      * task {@code candidateGroups}, which role acts on which step. This guard simply keeps the
      * workflow runtime API open to every real user role.
      */
-    public final String IS_WORKFLOW_ACTOR = "hasAnyRole('ADMIN', 'EMPLOYEE', 'SERVICE_MANAGER', "
-            + "'DEPARTMENT_MANAGER', 'DIRECTION_MANAGER', 'POLE_MANAGER', 'DIRECTION_GENERALE', "
-            + "'CONTROLE_GESTION')";
+    public final String IS_WORKFLOW_ACTOR = "hasAnyRole('ADMIN', 'EMPLOYEE', 'CELL_MANAGER', "
+            + "'SERVICE_MANAGER', 'DEPARTMENT_MANAGER', 'DIRECTION_MANAGER', 'POLE_MANAGER', "
+            + "'DIRECTION_GENERALE', 'CONTROLE_GESTION')";
 }

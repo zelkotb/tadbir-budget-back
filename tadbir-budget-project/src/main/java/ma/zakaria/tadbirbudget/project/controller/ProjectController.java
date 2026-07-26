@@ -14,13 +14,23 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import ma.zakaria.tadbirbudget.constant.Roles;
 import ma.zakaria.tadbirbudget.entity.enums.ProjectStatus;
+import ma.zakaria.tadbirbudget.enums.AuditAction;
 import ma.zakaria.tadbirbudget.project.dto.CreateProjectInput;
+import ma.zakaria.tadbirbudget.project.dto.ProjectAuditDiffResponse;
+import ma.zakaria.tadbirbudget.project.dto.ProjectAuditResponse;
+import ma.zakaria.tadbirbudget.project.dto.ProjectKpiResponse;
 import ma.zakaria.tadbirbudget.project.dto.ProjectResponse;
 import ma.zakaria.tadbirbudget.project.dto.SetTeamInput;
 import ma.zakaria.tadbirbudget.project.dto.StartProjectInput;
 import ma.zakaria.tadbirbudget.project.dto.TerminateProjectInput;
 import ma.zakaria.tadbirbudget.project.dto.UpdateProjectInput;
+import ma.zakaria.tadbirbudget.project.service.ProjectAuditService;
+import ma.zakaria.tadbirbudget.project.service.ProjectKpiService;
 import ma.zakaria.tadbirbudget.project.service.ProjectService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -40,7 +50,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ProjectController {
 
-    private final ProjectService service;
+    private final ProjectService      service;
+    private final ProjectAuditService auditService;
+    private final ProjectKpiService   kpiService;
 
     /** GET /api/v1/projects?status=&orgUnitId= — scoped list. */
     @GetMapping
@@ -54,6 +66,12 @@ public class ProjectController {
     @GetMapping("/{id}")
     public ResponseEntity<ProjectResponse> get(@PathVariable UUID id) {
         return ResponseEntity.ok(service.get(id));
+    }
+
+    /** GET /api/v1/projects/{id}/kpis — project-level KPIs (rollups) computed from its phases. */
+    @GetMapping("/{id}/kpis")
+    public ResponseEntity<ProjectKpiResponse> kpis(@PathVariable UUID id) {
+        return ResponseEntity.ok(kpiService.projectKpis(id));
     }
 
     /** POST /api/v1/projects — create in an org unit within the caller's subtree. */
@@ -91,12 +109,12 @@ public class ProjectController {
         return ResponseEntity.ok(service.start(id, input == null ? null : input.getStartDate()));
     }
 
-    /** POST /api/v1/projects/{id}/terminate — mark TERMINATED as of {year}. */
+    /** POST /api/v1/projects/{id}/terminate — mark TERMINATED as of {terminationDate}. */
     @PostMapping("/{id}/terminate")
     @PreAuthorize(Roles.IS_PROJECT_CREATOR)
     public ResponseEntity<ProjectResponse> terminate(@PathVariable UUID id,
                                                      @Valid @RequestBody TerminateProjectInput input) {
-        return ResponseEntity.ok(service.terminate(id, input.getYear()));
+        return ResponseEntity.ok(service.terminate(id, input.getTerminationDate()));
     }
 
     /** POST /api/v1/projects/{id}/archive — retire the project. */
@@ -112,5 +130,39 @@ public class ProjectController {
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ── Audit (admin only — Envers history of projects) ─────────────────────────
+
+    /**
+     * GET /api/v1/projects/audit — paginated Envers audit log for the Project entity.
+     *
+     * @param performedBy partial uid of who made the change
+     * @param ip          partial IP address
+     * @param action      CREATE / UPDATE / DELETE
+     * @param projectId   exact project whose history to retrieve
+     * @param date        DD/MM/YYYY — filter by a specific day
+     */
+    @GetMapping("/audit")
+    @PreAuthorize(Roles.IS_ADMIN)
+    public ResponseEntity<Page<ProjectAuditResponse>> getAudit(
+            @RequestParam(required = false) String      performedBy,
+            @RequestParam(required = false) String      ip,
+            @RequestParam(required = false) AuditAction action,
+            @RequestParam(required = false) UUID        projectId,
+            @RequestParam(required = false) String      date,
+            @PageableDefault(size = 20, sort = "occurredAt", direction = Sort.Direction.DESC)
+            Pageable pageable) {
+        return ResponseEntity.ok(auditService.query(performedBy, ip, action, projectId, date, pageable));
+    }
+
+    /**
+     * GET /api/v1/projects/audit/{revisionId}/diff — field-level diff for a single audit revision.
+     * {@code revisionId} comes from any {@link ProjectAuditResponse#revisionId()}.
+     */
+    @GetMapping("/audit/{revisionId}/diff")
+    @PreAuthorize(Roles.IS_ADMIN)
+    public ResponseEntity<ProjectAuditDiffResponse> getAuditDiff(@PathVariable int revisionId) {
+        return ResponseEntity.ok(auditService.getDiff(revisionId));
     }
 }

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+
+    This source code is the exclusive property of Zakaria El Kotb.
+    Unauthorized copying, modification, distribution, or use of this file,
+    via any medium, is strictly prohibited without the prior written
+    permission of the copyright owner.
+
+    Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+
+-->
+<!--
+    Termination now records the full end date, not just the year. Adds termination_date
+    (project + audit), back-fills it from any already-terminated rows (year → 31 Dec of that year),
+    then drops termination_year. Forward migration (add / update / drop with IF EXISTS) so it is
+    safe whether the project table was already deployed with termination_year or is created fresh.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="project_termination_year_to_date" author="zakaria el kotb">
+        <sql>alter table project add column if not exists termination_date date;</sql>
+        <sql>alter table project_audit add column if not exists termination_date date;</sql>
+        <!-- Preserve any existing terminations: year N becomes 31 December N. -->
+        <sql>
+            update project set termination_date = make_date(termination_year, 12, 31)
+            where termination_year is not null and termination_date is null;
+        </sql>
+        <sql>alter table project drop column if exists termination_year;</sql>
+        <sql>alter table project_audit drop column if exists termination_year;</sql>
+        <rollback>
+            <sql>alter table project add column if not exists termination_year integer;</sql>
+            <sql>alter table project_audit add column if not exists termination_year integer;</sql>
+            <sql>
+                update project set termination_year = extract(year from termination_date)::integer
+                where termination_date is not null and termination_year is null;
+            </sql>
+            <sql>alter table project drop column if exists termination_date;</sql>
+            <sql>alter table project_audit drop column if exists termination_date;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

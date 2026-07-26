@@ -118,8 +118,10 @@ notification:
 
 files:
   base-path: ${FILES_BASE_PATH:D:/projects/tadbir-files}
-  max-size-bytes: 10485760          # 10 MB per file
-  allowed-extensions: pdf,png,jpg,jpeg,doc,docx,xls,xlsx
+  max-size-bytes: ${FILES_MAX_SIZE_BYTES:52428800}   # 50 MB per file (CAD/slide decks get large)
+  # Broad document set (Office, PDF, images, CAD, archives, text); executables/scripts excluded.
+  # Override the whole list via FILES_ALLOWED_EXTENSIONS (comma-separated) to add more types.
+  allowed-extensions: ${FILES_ALLOWED_EXTENSIONS:pdf,doc,docx,xls,xlsx,ppt,pptx,csv,txt,rtf,odt,ods,odp,png,jpg,jpeg,gif,bmp,tif,tiff,svg,webp,dwg,dxf,dwf,rvt,ifc,skp,zip,rar,7z,xml,json}
   # allowed-content-types: (empty) — extension check is enough; add to also restrict by MIME
 
 workflow:

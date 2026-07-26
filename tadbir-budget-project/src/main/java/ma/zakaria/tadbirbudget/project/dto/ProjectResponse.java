@@ -30,7 +30,7 @@ public record ProjectResponse(
         UUID                        orgUnitId,
         String                      orgUnitName,
         LocalDate                   startDate,
-        Integer                     terminationYear,
+        LocalDate                   terminationDate,
         String                      createdBy,
         Instant                     createdAt,
         long                        memberCount,
@@ -41,7 +41,7 @@ public record ProjectResponse(
         return new ProjectResponse(
                 p.getId(), p.getName(), p.getObjectifs(), p.getDescription(),
                 p.getStatus(), p.getChefProjetId(), chefProjetName, p.getOrgUnitId(), orgUnitName,
-                p.getStartDate(), p.getTerminationYear(), p.getCreatedBy(), p.getCreatedAt(),
+                p.getStartDate(), p.getTerminationDate(), p.getCreatedBy(), p.getCreatedAt(),
                 memberCount, team);
     }
 }

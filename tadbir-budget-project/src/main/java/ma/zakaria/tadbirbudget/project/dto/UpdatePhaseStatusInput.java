@@ -12,13 +12,12 @@ package ma.zakaria.tadbirbudget.project.dto;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import ma.zakaria.tadbirbudget.entity.enums.PhaseStatus;
 
-import java.time.LocalDate;
-
-/** Terminate a project as of a given end date (the full date, not just the year). */
+/** Change a phase's status. Transitions are forward-only: CREATED → ACTIVE → TERMINATED. */
 @Data
-public class TerminateProjectInput {
+public class UpdatePhaseStatusInput {
 
     @NotNull
-    private LocalDate terminationDate;
+    private PhaseStatus status;
 }

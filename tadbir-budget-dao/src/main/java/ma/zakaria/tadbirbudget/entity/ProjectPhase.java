@@ -23,62 +23,70 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import ma.zakaria.tadbirbudget.entity.enums.ProjectStatus;
+import ma.zakaria.tadbirbudget.entity.enums.PhaseStatus;
 import org.hibernate.envers.Audited;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * A project (a.k.a. program — the label is a company-wide setting, not a per-project field). Owned
- * by an {@link OrgUnit}, run by a chef de projet (a {@link User}, referenced by id), with a team
- * ({@link ProjectMember}). Its budget (lignes + amounts, per year) is a separate concern.
- * {@code @Audited} so every change is attributed to its actor via Envers.
+ * A phase (étape) of a {@link Project} — how the project is followed step by step. Each phase carries
+ * a {@code weight} (its share of the project; the phases' weights sum to at most 100) and a
+ * {@code completion} (its own progress, 0→100 over time). {@code firstStartDate}/{@code firstEndDate}
+ * are the immutable baseline (set at creation) used to compute delays against the current schedule.
+ * {@code @Audited} so every change is attributed to its actor.
  */
 @Audited
 @Entity
-@Table(name = "project")
+@Table(name = "project_phase")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Project {
+public class ProjectPhase {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(columnDefinition = "uuid")
     private UUID id;
 
-    @Column(nullable = false)
-    private String name;
+    @Column(name = "project_id", nullable = false, columnDefinition = "uuid")
+    private UUID projectId;
 
-    @Column(columnDefinition = "text")
-    private String objectifs;
+    @Column(nullable = false)
+    private String title;
 
     @Column(columnDefinition = "text")
     private String description;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private ProjectStatus status;
+    private PhaseStatus status;
 
-    /** The chef de projet — {@link User} id (not uid). */
-    @Column(name = "chef_projet_id", nullable = false, columnDefinition = "uuid")
-    private UUID chefProjetId;
+    /** Share of the project (poids), 0–100. The project's phases' weights sum to at most 100. */
+    @Column(nullable = false, precision = 5, scale = 2)
+    private BigDecimal weight;
 
-    /** The org unit the project belongs to. */
-    @Column(name = "org_unit_id", nullable = false, columnDefinition = "uuid")
-    private UUID orgUnitId;
+    /** Progress of this phase (avancement), 0–100; increases over time toward 100. */
+    @Column(nullable = false, precision = 5, scale = 2)
+    private BigDecimal completion;
 
-    /** Set when the project is started (status → ACTIVE). Null while NOT_STARTED. */
+    /** Current planned schedule (editable). */
     @Column(name = "start_date")
     private LocalDate startDate;
 
-    /** Set when the project is TERMINATED — the full end date, not just the year. */
-    @Column(name = "termination_date")
-    private LocalDate terminationDate;
+    @Column(name = "end_date")
+    private LocalDate endDate;
+
+    /** Baseline schedule, set once at creation and never changed — used to compute delays. */
+    @Column(name = "first_start_date")
+    private LocalDate firstStartDate;
+
+    @Column(name = "first_end_date")
+    private LocalDate firstEndDate;
 
     /** uid of the creator. */
     @Column(name = "created_by", length = 255)

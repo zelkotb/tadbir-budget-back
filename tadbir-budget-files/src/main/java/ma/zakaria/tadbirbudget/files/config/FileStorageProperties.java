@@ -29,12 +29,24 @@ public class FileStorageProperties {
     /** Root directory where files are stored. */
     private String basePath = "D:/projects/tadbir-files";
 
-    /** Max accepted file size in bytes (default 10 MB). */
-    private long maxSizeBytes = 10L * 1024 * 1024;
+    /** Max accepted file size in bytes (default 50 MB — CAD/slide decks get large). */
+    private long maxSizeBytes = 50L * 1024 * 1024;
 
-    /** Allowed lowercase extensions (without dot). Empty = allow any extension. */
+    /**
+     * Allowed lowercase extensions (without dot). Empty = allow any extension. A broad document set
+     * (Office, PDF, images, CAD, archives, text) — deliberately excludes executables/scripts. Extend
+     * via {@code files.allowed-extensions} in config when a new type is needed.
+     */
     private List<String> allowedExtensions = List.of(
-            "pdf", "png", "jpg", "jpeg", "doc", "docx", "xls", "xlsx");
+            // documents
+            "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "csv", "txt", "rtf",
+            "odt", "ods", "odp",
+            // images
+            "png", "jpg", "jpeg", "gif", "bmp", "tif", "tiff", "svg", "webp",
+            // CAD / engineering
+            "dwg", "dxf", "dwf", "rvt", "ifc", "skp",
+            // archives / data
+            "zip", "rar", "7z", "xml", "json");
 
     /** Allowed content types. Empty = skip the content-type check (extension still applies). */
     private List<String> allowedContentTypes = List.of();

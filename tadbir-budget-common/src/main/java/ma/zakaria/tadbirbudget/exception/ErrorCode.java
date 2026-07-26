@@ -74,6 +74,19 @@ public enum ErrorCode {
     // ── Projects ─────────────────────────────────────────────────────────────
     PROJECT_NOT_FOUND,
     PROJECT_INVALID_STATUS,
+    /** The project must be ACTIVE (started) for this action — e.g. starting a phase. */
+    PROJECT_NOT_ACTIVE,
+    /** The project cannot be terminated while some of its phases are still open (not TERMINATED). */
+    PROJECT_HAS_OPEN_PHASES,
+    /** The project's termination date is earlier than the latest phase end date. */
+    PROJECT_TERMINATION_BEFORE_PHASE_END,
+    PROJECT_DOCUMENT_NOT_FOUND,
+    PROJECT_PHASE_NOT_FOUND,
+    PROJECT_PHASE_INVALID_STATUS,
+    PROJECT_PHASE_INVALID_DATES,
+    /** A phase cannot start before its project's start date. */
+    PROJECT_PHASE_START_BEFORE_PROJECT,
+    PROJECT_PHASE_WEIGHT_EXCEEDED,
 
     // ── Organisation structure ───────────────────────────────────────────────
     ORG_UNIT_NOT_FOUND,

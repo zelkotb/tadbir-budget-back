@@ -28,4 +28,7 @@
     <include file="db/changelog/slave/2026_07_24_settings.xml"/>
     <include file="db/changelog/slave/2026_07_24_project_drop_type.xml"/>
     <include file="db/changelog/slave/2026_07_24_project_lifecycle.xml"/>
+    <include file="db/changelog/slave/2026_07_26_project_terminate_date.xml"/>
+    <include file="db/changelog/slave/2026_07_26_project_document.xml"/>
+    <include file="db/changelog/slave/2026_07_26_project_phase.xml"/>
 </databaseChangeLog>

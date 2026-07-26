@@ -14,28 +14,40 @@ import lombok.RequiredArgsConstructor;
 import ma.zakaria.tadbirbudget.constant.Roles;
 import ma.zakaria.tadbirbudget.entity.OrgUnit;
 import ma.zakaria.tadbirbudget.entity.Project;
+import ma.zakaria.tadbirbudget.entity.ProjectDocument;
 import ma.zakaria.tadbirbudget.entity.ProjectMember;
+import ma.zakaria.tadbirbudget.entity.ProjectPhase;
 import ma.zakaria.tadbirbudget.entity.User;
+import ma.zakaria.tadbirbudget.entity.enums.PhaseStatus;
 import ma.zakaria.tadbirbudget.entity.enums.ProjectStatus;
 import ma.zakaria.tadbirbudget.exception.CustomException;
 import ma.zakaria.tadbirbudget.exception.ErrorCode;
+import ma.zakaria.tadbirbudget.files.dto.StoredFile;
+import ma.zakaria.tadbirbudget.files.service.FileStorageService;
 import ma.zakaria.tadbirbudget.project.dto.CreateProjectInput;
+import ma.zakaria.tadbirbudget.project.dto.DocumentDownload;
+import ma.zakaria.tadbirbudget.project.dto.ProjectDocumentResponse;
 import ma.zakaria.tadbirbudget.project.dto.ProjectMemberInput;
 import ma.zakaria.tadbirbudget.project.dto.ProjectMemberResponse;
 import ma.zakaria.tadbirbudget.project.dto.ProjectResponse;
 import ma.zakaria.tadbirbudget.project.dto.SetTeamInput;
 import ma.zakaria.tadbirbudget.project.dto.UpdateProjectInput;
 import ma.zakaria.tadbirbudget.repository.OrgUnitRepository;
+import ma.zakaria.tadbirbudget.repository.ProjectDocumentRepository;
 import ma.zakaria.tadbirbudget.repository.ProjectMemberRepository;
+import ma.zakaria.tadbirbudget.repository.ProjectPhaseRepository;
 import ma.zakaria.tadbirbudget.repository.ProjectRepository;
 import ma.zakaria.tadbirbudget.repository.UserRepository;
 import ma.zakaria.tadbirbudget.util.SecurityUtils;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -55,10 +67,16 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProjectService {
 
-    private final ProjectRepository       projectRepository;
-    private final ProjectMemberRepository memberRepository;
-    private final UserRepository          userRepository;
-    private final OrgUnitRepository        orgUnitRepository;
+    /** Storage sub-directory for project documents (one folder per project underneath). */
+    private static final String DOCUMENTS_SUBDIR = "project-documents";
+
+    private final ProjectRepository         projectRepository;
+    private final ProjectMemberRepository   memberRepository;
+    private final ProjectDocumentRepository documentRepository;
+    private final ProjectPhaseRepository    phaseRepository;
+    private final UserRepository            userRepository;
+    private final OrgUnitRepository          orgUnitRepository;
+    private final FileStorageService        fileStorageService;
 
     // ── Reads ─────────────────────────────────────────────────────────────────
 
@@ -91,6 +109,24 @@ public class ProjectService {
         Project p = load(id);
         authorizeRead(currentUser(), p);
         return toResponses(List.of(p), true).get(0);
+    }
+
+    // ── Shared access checkpoints (reused by sub-resources like phases) ─────────
+
+    /** Load a project the current user may read (else ACCESS_DENIED / NOT_FOUND). */
+    @Transactional(readOnly = true)
+    public Project requireReadable(UUID projectId) {
+        Project p = load(projectId);
+        authorizeRead(currentUser(), p);
+        return p;
+    }
+
+    /** Load a project the current user may manage — chef or manager-in-scope (else ACCESS_DENIED). */
+    @Transactional(readOnly = true)
+    public Project requireManageable(UUID projectId) {
+        Project p = load(projectId);
+        authorizeManage(currentUser(), p);
+        return p;
     }
 
     // ── Writes ────────────────────────────────────────────────────────────────
@@ -151,7 +187,7 @@ public class ProjectService {
     @Transactional
     public ProjectResponse start(UUID id, LocalDate startDate) {
         Project p = load(id);
-        authorizeStart(currentUser(), p);
+        authorizeManage(currentUser(), p);
         if (p.getStatus() != ProjectStatus.NOT_STARTED) {
             throw new CustomException(ErrorCode.PROJECT_INVALID_STATUS, HttpStatus.CONFLICT);
         }
@@ -161,14 +197,28 @@ public class ProjectService {
     }
 
     @Transactional
-    public ProjectResponse terminate(UUID id, int year) {
+    public ProjectResponse terminate(UUID id, LocalDate terminationDate) {
         Project p = load(id);
         authorizeScope(currentUser(), p.getOrgUnitId());
         if (p.getStatus() != ProjectStatus.ACTIVE) {
             throw new CustomException(ErrorCode.PROJECT_INVALID_STATUS, HttpStatus.CONFLICT);
         }
+        List<ProjectPhase> phases = phaseRepository.findByProjectId(id);
+        // Every phase must be closed manually before the project itself can be terminated.
+        if (phases.stream().anyMatch(ph -> ph.getStatus() != PhaseStatus.TERMINATED)) {
+            throw new CustomException(ErrorCode.PROJECT_HAS_OPEN_PHASES, HttpStatus.CONFLICT);
+        }
+        // The project cannot end before its last phase ends.
+        LocalDate lastPhaseEnd = phases.stream()
+                .map(ProjectPhase::getEndDate)
+                .filter(d -> d != null)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+        if (lastPhaseEnd != null && terminationDate.isBefore(lastPhaseEnd)) {
+            throw new CustomException(ErrorCode.PROJECT_TERMINATION_BEFORE_PHASE_END, HttpStatus.CONFLICT);
+        }
         p.setStatus(ProjectStatus.TERMINATED);
-        p.setTerminationYear(year);
+        p.setTerminationDate(terminationDate);
         return toResponses(List.of(projectRepository.save(p)), true).get(0);
     }
 
@@ -187,8 +237,70 @@ public class ProjectService {
     public void delete(UUID id) {
         Project p = load(id);
         authorizeScope(currentUser(), p.getOrgUnitId());
+        List<ProjectDocument> docs = documentRepository.findByProjectId(id);  // capture paths before cascade
         memberRepository.deleteByProjectId(id);
-        projectRepository.delete(p);
+        projectRepository.delete(p);   // FK on delete cascade removes project_document rows
+        docs.forEach(d -> fileStorageService.delete(d.getFilePath()));
+    }
+
+    // ── Documents ───────────────────────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public List<ProjectDocumentResponse> listDocuments(UUID projectId) {
+        Project p = load(projectId);
+        authorizeRead(currentUser(), p);
+        return documentRepository.findByProjectIdOrderByUploadedAtDesc(projectId).stream()
+                .map(ProjectDocumentResponse::from).toList();
+    }
+
+    /** Attach a file (any type) to the project. Chef / manager-in-scope only. */
+    @Transactional
+    public ProjectDocumentResponse uploadDocument(UUID projectId, MultipartFile file, String label) {
+        Project p = load(projectId);
+        authorizeManage(currentUser(), p);
+        requireNotArchived(p);
+        StoredFile stored = fileStorageService.store(file, DOCUMENTS_SUBDIR + "/" + projectId);
+        ProjectDocument doc = documentRepository.save(ProjectDocument.builder()
+                .projectId(projectId)
+                .filePath(stored.path())
+                .originalFileName(stored.originalFileName())
+                .contentType(stored.contentType())
+                .sizeBytes(stored.sizeBytes())
+                .label(trimToNull(label))
+                .uploadedBy(SecurityUtils.getCurrentUsername())
+                .uploadedAt(Instant.now())
+                .build());
+        return ProjectDocumentResponse.from(doc);
+    }
+
+    @Transactional(readOnly = true)
+    public DocumentDownload downloadDocument(UUID projectId, UUID documentId) {
+        Project p = load(projectId);
+        authorizeRead(currentUser(), p);
+        ProjectDocument doc = loadDocument(projectId, documentId);
+        Resource resource = fileStorageService.load(doc.getFilePath());
+        String contentType = doc.getContentType() != null ? doc.getContentType()
+                : fileStorageService.probeContentType(doc.getFilePath());
+        return new DocumentDownload(resource, doc.getOriginalFileName(), contentType);
+    }
+
+    /** Remove a document (row + stored bytes). Chef / manager-in-scope only. */
+    @Transactional
+    public void deleteDocument(UUID projectId, UUID documentId) {
+        Project p = load(projectId);
+        authorizeManage(currentUser(), p);
+        ProjectDocument doc = loadDocument(projectId, documentId);
+        documentRepository.delete(doc);
+        fileStorageService.delete(doc.getFilePath());
+    }
+
+    private ProjectDocument loadDocument(UUID projectId, UUID documentId) {
+        ProjectDocument doc = documentRepository.findById(documentId)
+                .orElseThrow(() -> new CustomException(ErrorCode.PROJECT_DOCUMENT_NOT_FOUND, HttpStatus.NOT_FOUND));
+        if (!doc.getProjectId().equals(projectId)) {   // document must belong to the path's project
+            throw new CustomException(ErrorCode.PROJECT_DOCUMENT_NOT_FOUND, HttpStatus.NOT_FOUND);
+        }
+        return doc;
     }
 
     // ── Authorization (the single checkpoint delegation will extend) ────────────
@@ -211,10 +323,12 @@ public class ProjectService {
     }
 
     /**
-     * Who may start a project: its chef de projet (the responsible — whatever their role), or a
-     * project-creator manager acting within scope. Throws ACCESS_DENIED otherwise.
+     * Who may perform a project's responsible actions — lifecycle (start) and destructive document
+     * writes (upload / delete): its chef de projet (the responsible — whatever their role), or a
+     * project-creator manager acting within scope (admin anywhere). Team members and pure read-scope
+     * viewers may see the project but not write to it. Throws ACCESS_DENIED otherwise.
      */
-    private void authorizeStart(User caller, Project p) {
+    private void authorizeManage(User caller, Project p) {
         if (p.getChefProjetId().equals(caller.getId())) {   // the responsible
             return;
         }
@@ -227,6 +341,7 @@ public class ProjectService {
     /** Roles allowed to create/manage projects (mirrors {@link Roles#IS_PROJECT_CREATOR}). */
     private boolean isProjectCreator(User caller) {
         return caller.getRoles().contains(Roles.ADMIN)
+                || caller.getRoles().contains(Roles.CELL_MANAGER)
                 || caller.getRoles().contains(Roles.SERVICE_MANAGER)
                 || caller.getRoles().contains(Roles.DEPARTMENT_MANAGER)
                 || caller.getRoles().contains(Roles.DIRECTION_MANAGER)

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+
+    This source code is the exclusive property of Zakaria El Kotb.
+    Unauthorized copying, modification, distribution, or use of this file,
+    via any medium, is strictly prohibited without the prior written
+    permission of the copyright owner.
+
+    Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+
+-->
+<!--
+    Project documents: a project has a documents section holding files of any type (PDF, Office,
+    images, CAD, …). The bytes live on the filesystem (files module); this table keeps the storage
+    key and metadata. Rows are removed with their project (FK on delete cascade); the stored bytes
+    are deleted by the service.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="create_project_document" author="zakaria el kotb">
+        <sql>
+            create table project_document (
+                id uuid not null,
+                project_id uuid not null,
+                file_path varchar(500) not null,
+                original_file_name varchar(255) not null,
+                content_type varchar(255),
+                size_bytes bigint not null,
+                label varchar(255),
+                uploaded_by varchar(255),
+                uploaded_at timestamp(6) with time zone not null,
+                primary key (id)
+            );
+        </sql>
+        <sql>alter table project_document add constraint fk_document_project foreign key (project_id) references project (id) on delete cascade;</sql>
+        <sql>create index idx_document_project on project_document (project_id);</sql>
+        <rollback>
+            <sql>drop table if exists project_document cascade;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

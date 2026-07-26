@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+
+    This source code is the exclusive property of Zakaria El Kotb.
+    Unauthorized copying, modification, distribution, or use of this file,
+    via any medium, is strictly prohibited without the prior written
+    permission of the copyright owner.
+
+    Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+
+-->
+<!--
+    Project phases (étapes): how a project is followed step by step. Each phase carries a weight
+    (share of the project) and a completion (its own progress), plus a current and an immutable
+    baseline schedule (first_*) for delay calculation. Envers-audited (project_phase_audit).
+    Removed with the project via ON DELETE CASCADE.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="create_project_phase" author="zakaria el kotb">
+        <sql>
+            create table project_phase (
+                id uuid not null,
+                project_id uuid not null,
+                title varchar(255) not null,
+                description text,
+                status varchar(20) not null check (status in ('CREATED','ACTIVE','TERMINATED')),
+                weight numeric(5,2) not null default 0,
+                completion numeric(5,2) not null default 0,
+                start_date date,
+                end_date date,
+                first_start_date date,
+                first_end_date date,
+                created_by varchar(255),
+                created_at timestamp(6) with time zone not null,
+                primary key (id)
+            );
+        </sql>
+        <sql>alter table project_phase add constraint fk_phase_project foreign key (project_id) references project (id) on delete cascade;</sql>
+        <sql>create index idx_phase_project on project_phase (project_id);</sql>
+        <rollback>
+            <sql>drop table if exists project_phase cascade;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="create_project_phase_audit" author="zakaria el kotb">
+        <sql>
+            create table project_phase_audit (
+                id uuid not null,
+                rev integer not null,
+                revtype smallint,
+                project_id uuid,
+                title varchar(255),
+                description text,
+                status varchar(20),
+                weight numeric(5,2),
+                completion numeric(5,2),
+                start_date date,
+                end_date date,
+                first_start_date date,
+                first_end_date date,
+                created_by varchar(255),
+                created_at timestamp(6) with time zone,
+                primary key (rev, id)
+            );
+        </sql>
+        <sql>alter table project_phase_audit add constraint fk_phase_audit_revinfo foreign key (rev) references revinfo (id);</sql>
+        <rollback>
+            <sql>drop table if exists project_phase_audit cascade;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
