@@ -33,10 +33,11 @@ public record ProjectKpiResponse(
         UUID      projectId,
         LocalDate referenceDate,
 
-        // Phase counts by status (total = their sum)
+        // Top-level phase counts by status (total = their sum)
         int       countCreated,
         int       countActive,
         int       countTerminated,
+        int       countCancelled,
 
         // Advancement against the whole project
         double    avancementPlanifie,   // Σ weight (planned coverage / target)
@@ -52,7 +53,7 @@ public record ProjectKpiResponse(
     /** KPIs for a project with no phases yet. */
     public static ProjectKpiResponse empty(UUID projectId, LocalDate referenceDate) {
         return new ProjectKpiResponse(projectId, referenceDate,
-                0, 0, 0,
+                0, 0, 0, 0,
                 0d, 0d,
                 0,
                 null, null);

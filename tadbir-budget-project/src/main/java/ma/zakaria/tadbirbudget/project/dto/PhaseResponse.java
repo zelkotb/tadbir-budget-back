@@ -22,6 +22,7 @@ import java.util.UUID;
 public record PhaseResponse(
         UUID        id,
         UUID        projectId,
+        UUID        parentPhaseId,
         String      title,
         String      description,
         PhaseStatus status,
@@ -36,7 +37,7 @@ public record PhaseResponse(
 ) {
     public static PhaseResponse from(ProjectPhase p) {
         return new PhaseResponse(
-                p.getId(), p.getProjectId(), p.getTitle(), p.getDescription(), p.getStatus(),
+                p.getId(), p.getProjectId(), p.getParentPhaseId(), p.getTitle(), p.getDescription(), p.getStatus(),
                 p.getWeight(), p.getCompletion(), p.getStartDate(), p.getEndDate(),
                 p.getFirstStartDate(), p.getFirstEndDate(), p.getCreatedBy(), p.getCreatedAt());
     }

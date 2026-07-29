@@ -34,12 +34,16 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Phases of a project (how it is followed step by step). Authorization is delegated to
- * {@link ProjectService}'s shared checkpoints — read for viewing, manage (chef or manager-in-scope)
- * for writes. A phase is created {@code CREATED}; its status moves forward only
- * ({@code CREATED → ACTIVE → TERMINATED}); a terminated phase can neither be edited nor transitioned.
- * The phases' weights (shares of the project) may never sum to more than 100. Every change is
- * Envers-audited to its actor.
+ * Phases and sous-phases of a project (how it is followed step by step). A sous-phase is a phase with
+ * a parent (two levels only) — same fields, same rules. Authorization is delegated to
+ * {@link ProjectService} (read to view, manage — chef or manager-in-scope — to write).
+ *
+ * <p>Status moves forward only ({@code CREATED → ACTIVE → TERMINATED}) or is cancelled
+ * ({@code CREATED/ACTIVE → CANCELLED}); closed (terminated/cancelled) phases are read-only. Siblings'
+ * weights (non-cancelled) may never sum to more than 100. A parent phase's completion is <b>derived</b>
+ * from its non-cancelled sous-phases (Σ weight·completion / 100) and kept denormalized; leaf phases
+ * carry their own. Starting a sous-phase needs its parent ACTIVE; terminating a parent needs all its
+ * sous-phases closed; cancelling a parent cascades to its open sous-phases.
  */
 @Service
 @RequiredArgsConstructor
@@ -56,7 +60,15 @@ public class ProjectPhaseService {
     @Transactional(readOnly = true)
     public List<PhaseResponse> list(UUID projectId) {
         projectService.requireReadable(projectId);
-        return phaseRepository.findByProjectIdOrderByStartDateAscCreatedAtAsc(projectId)
+        return phaseRepository.findByProjectIdAndParentPhaseIdIsNullOrderByStartDateAscCreatedAtAsc(projectId)
+                .stream().map(PhaseResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<PhaseResponse> listSubPhases(UUID projectId, UUID parentId) {
+        projectService.requireReadable(projectId);
+        loadPhase(projectId, parentId);   // parent must exist and belong to the project
+        return phaseRepository.findByParentPhaseIdOrderByStartDateAscCreatedAtAsc(parentId)
                 .stream().map(PhaseResponse::from).toList();
     }
 
@@ -72,14 +84,118 @@ public class ProjectPhaseService {
     public PhaseResponse create(UUID projectId, CreatePhaseInput in) {
         Project project = projectService.requireManageable(projectId);
         requireProjectAcceptsPhaseChanges(project);
+        return PhaseResponse.from(buildAndSave(project, projectId, null, in));
+    }
+
+    @Transactional
+    public PhaseResponse createSubPhase(UUID projectId, UUID parentId, CreatePhaseInput in) {
+        Project project = projectService.requireManageable(projectId);
+        requireProjectAcceptsPhaseChanges(project);
+        ProjectPhase parent = loadPhase(projectId, parentId);
+        if (parent.getParentPhaseId() != null) {                 // two levels only
+            throw new CustomException(ErrorCode.PROJECT_SUBPHASE_NESTING, HttpStatus.CONFLICT);
+        }
+        requirePhaseNotClosed(parent);                           // can't add a sous-phase to a closed phase
+        requireWithinParent(parent, in.getStartDate(), in.getEndDate());
+        ProjectPhase sub = buildAndSave(project, projectId, parentId, in);
+        recomputeParentCompletion(parentId);
+        return PhaseResponse.from(sub);
+    }
+
+    @Transactional
+    public PhaseResponse update(UUID projectId, UUID phaseId, UpdatePhaseInput in) {
+        Project project = projectService.requireManageable(projectId);
+        requireProjectAcceptsPhaseChanges(project);
+        ProjectPhase phase = loadPhase(projectId, phaseId);
+        requirePhaseNotClosed(phase);
+
+        if (in.getTitle() != null)       phase.setTitle(in.getTitle().trim());
+        if (in.getDescription() != null) phase.setDescription(trimToNull(in.getDescription()));
+        if (in.getStartDate() != null)   phase.setStartDate(in.getStartDate());
+        if (in.getEndDate() != null)     phase.setEndDate(in.getEndDate());
+        validateDates(phase.getStartDate(), phase.getEndDate());
+        requireStartWithinProject(project, phase.getStartDate());
+        if (phase.getParentPhaseId() != null) {                  // a sous-phase stays inside its parent
+            requireWithinParent(loadPhase(projectId, phase.getParentPhaseId()),
+                    phase.getStartDate(), phase.getEndDate());
+        } else if (phaseRepository.existsByParentPhaseId(phaseId)) {   // a parent must still contain its sous-phases
+            requireContainsSubPhases(phaseId, phase.getStartDate(), phase.getEndDate());
+        }
+        if (in.getWeight() != null) {
+            requireWeightWithinBudget(projectId, phase.getParentPhaseId(), phaseId, in.getWeight());
+            phase.setWeight(in.getWeight());
+        }
+        // A parent phase's completion is derived from its sous-phases — ignore any manual value.
+        if (in.getCompletion() != null && !phaseRepository.existsByParentPhaseId(phaseId)) {
+            phase.setCompletion(in.getCompletion());
+            // Recording a positive advancement on a not-started phase starts it.
+            if (phase.getStatus() == PhaseStatus.CREATED
+                    && in.getCompletion().compareTo(BigDecimal.ZERO) > 0) {
+                requireContainerActive(project, phase);
+                phase.setStatus(PhaseStatus.ACTIVE);
+            }
+        }
+        ProjectPhase saved = phaseRepository.save(phase);
+        if (phase.getParentPhaseId() != null) {
+            recomputeParentCompletion(phase.getParentPhaseId());
+        }
+        return PhaseResponse.from(saved);
+    }
+
+    /** Move a phase/sous-phase: CREATED → ACTIVE → TERMINATED, or CREATED/ACTIVE → CANCELLED. */
+    @Transactional
+    public PhaseResponse changeStatus(UUID projectId, UUID phaseId, PhaseStatus target) {
+        Project project = projectService.requireManageable(projectId);
+        requireProjectAcceptsPhaseChanges(project);
+        ProjectPhase phase = loadPhase(projectId, phaseId);
+        requireValidTransition(phase.getStatus(), target);
+
+        if (target == PhaseStatus.ACTIVE) {
+            requireContainerActive(project, phase);
+        }
+        if (target == PhaseStatus.TERMINATED) {
+            if (phaseRepository.existsByParentPhaseId(phaseId)) {
+                requireAllSubPhasesClosed(phaseId);   // parent completion stays the derived rollup
+            } else {
+                phase.setCompletion(FULL_COMPLETION); // leaf phase → 100%
+            }
+        }
+        if (target == PhaseStatus.CANCELLED) {
+            cascadeCancelSubPhases(phaseId);
+        }
+        phase.setStatus(target);
+        ProjectPhase saved = phaseRepository.save(phase);
+        if (phase.getParentPhaseId() != null) {
+            recomputeParentCompletion(phase.getParentPhaseId());
+        }
+        return PhaseResponse.from(saved);
+    }
+
+    @Transactional
+    public void delete(UUID projectId, UUID phaseId) {
+        Project project = projectService.requireManageable(projectId);
+        requireProjectAcceptsPhaseChanges(project);
+        ProjectPhase phase = loadPhase(projectId, phaseId);
+        requirePhaseNotClosed(phase);
+        UUID parentId = phase.getParentPhaseId();
+        phaseRepository.delete(phase);   // FK on delete cascade removes sous-phases
+        phaseRepository.flush();
+        if (parentId != null) {
+            recomputeParentCompletion(parentId);
+        }
+    }
+
+    // ── Internals ─────────────────────────────────────────────────────────────
+
+    private ProjectPhase buildAndSave(Project project, UUID projectId, UUID parentId, CreatePhaseInput in) {
         validateDates(in.getStartDate(), in.getEndDate());
         requireStartWithinProject(project, in.getStartDate());
-
         BigDecimal weight = nz(in.getWeight());
-        requireWeightWithinBudget(projectId, null, weight);
+        requireWeightWithinBudget(projectId, parentId, null, weight);
 
-        ProjectPhase phase = phaseRepository.save(ProjectPhase.builder()
+        return phaseRepository.save(ProjectPhase.builder()
                 .projectId(projectId)
+                .parentPhaseId(parentId)
                 .title(in.getTitle().trim())
                 .description(trimToNull(in.getDescription()))
                 .status(PhaseStatus.CREATED)
@@ -92,73 +208,77 @@ public class ProjectPhaseService {
                 .createdBy(SecurityUtils.getCurrentUsername())
                 .createdAt(Instant.now())
                 .build());
-        return PhaseResponse.from(phase);
     }
-
-    @Transactional
-    public PhaseResponse update(UUID projectId, UUID phaseId, UpdatePhaseInput in) {
-        Project project = projectService.requireManageable(projectId);
-        requireProjectAcceptsPhaseChanges(project);
-        ProjectPhase phase = loadPhase(projectId, phaseId);
-        requirePhaseNotTerminated(phase);
-
-        if (in.getTitle() != null)       phase.setTitle(in.getTitle().trim());
-        if (in.getDescription() != null) phase.setDescription(trimToNull(in.getDescription()));
-        if (in.getStartDate() != null)   phase.setStartDate(in.getStartDate());
-        if (in.getEndDate() != null)     phase.setEndDate(in.getEndDate());
-        validateDates(phase.getStartDate(), phase.getEndDate());
-        requireStartWithinProject(project, phase.getStartDate());
-        if (in.getCompletion() != null)  phase.setCompletion(in.getCompletion());
-        if (in.getWeight() != null) {
-            requireWeightWithinBudget(projectId, phaseId, in.getWeight());
-            phase.setWeight(in.getWeight());
-        }
-        return PhaseResponse.from(phaseRepository.save(phase));
-    }
-
-    /** Forward-only transition, one step at a time: CREATED → ACTIVE → TERMINATED. */
-    @Transactional
-    public PhaseResponse changeStatus(UUID projectId, UUID phaseId, PhaseStatus target) {
-        Project project = projectService.requireManageable(projectId);
-        requireProjectAcceptsPhaseChanges(project);
-        ProjectPhase phase = loadPhase(projectId, phaseId);
-
-        if (phase.getStatus() == PhaseStatus.TERMINATED
-                || target.ordinal() != phase.getStatus().ordinal() + 1) {
-            throw new CustomException(ErrorCode.PROJECT_PHASE_INVALID_STATUS, HttpStatus.CONFLICT);
-        }
-        // A phase can only be started once the project itself has started.
-        if (target == PhaseStatus.ACTIVE && project.getStatus() != ProjectStatus.ACTIVE) {
-            throw new CustomException(ErrorCode.PROJECT_NOT_ACTIVE, HttpStatus.CONFLICT);
-        }
-        phase.setStatus(target);
-        if (target == PhaseStatus.TERMINATED) {
-            phase.setCompletion(FULL_COMPLETION);   // a closed phase is 100% done
-        }
-        return PhaseResponse.from(phaseRepository.save(phase));
-    }
-
-    @Transactional
-    public void delete(UUID projectId, UUID phaseId) {
-        Project project = projectService.requireManageable(projectId);
-        requireProjectAcceptsPhaseChanges(project);
-        ProjectPhase phase = loadPhase(projectId, phaseId);
-        requirePhaseNotTerminated(phase);
-        phaseRepository.delete(phase);
-    }
-
-    // ── Internals ─────────────────────────────────────────────────────────────
 
     private ProjectPhase loadPhase(UUID projectId, UUID phaseId) {
         ProjectPhase phase = phaseRepository.findById(phaseId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PROJECT_PHASE_NOT_FOUND, HttpStatus.NOT_FOUND));
-        if (!phase.getProjectId().equals(projectId)) {   // phase must belong to the path's project
+        if (!phase.getProjectId().equals(projectId)) {
             throw new CustomException(ErrorCode.PROJECT_PHASE_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
         return phase;
     }
 
-    /** No phase actions once the project is TERMINATED or ARCHIVED (phases are then frozen). */
+    /** Recompute and store a parent phase's completion from its non-cancelled sous-phases. */
+    private void recomputeParentCompletion(UUID parentId) {
+        ProjectPhase parent = phaseRepository.findById(parentId).orElse(null);
+        if (parent == null) {
+            return;
+        }
+        double rolledUp = phaseRepository.findByParentPhaseId(parentId).stream()
+                .filter(s -> s.getStatus() != PhaseStatus.CANCELLED)
+                .mapToDouble(s -> dbl(s.getWeight()) * dbl(s.getCompletion()) / 100.0)
+                .sum();
+        parent.setCompletion(BigDecimal.valueOf(round2(rolledUp)));
+        phaseRepository.save(parent);
+    }
+
+    private void cascadeCancelSubPhases(UUID parentId) {
+        for (ProjectPhase sub : phaseRepository.findByParentPhaseId(parentId)) {
+            if (!isClosed(sub.getStatus())) {
+                sub.setStatus(PhaseStatus.CANCELLED);
+                phaseRepository.save(sub);
+            }
+        }
+    }
+
+    /** A sous-phase can start only when its parent is ACTIVE; a top-level phase, when the project is. */
+    private void requireContainerActive(Project project, ProjectPhase phase) {
+        if (phase.getParentPhaseId() == null) {
+            if (project.getStatus() != ProjectStatus.ACTIVE) {
+                throw new CustomException(ErrorCode.PROJECT_NOT_ACTIVE, HttpStatus.CONFLICT);
+            }
+        } else {
+            ProjectPhase parent = loadPhase(phase.getProjectId(), phase.getParentPhaseId());
+            if (parent.getStatus() != PhaseStatus.ACTIVE) {
+                throw new CustomException(ErrorCode.PROJECT_PHASE_PARENT_NOT_ACTIVE, HttpStatus.CONFLICT);
+            }
+        }
+    }
+
+    private void requireAllSubPhasesClosed(UUID parentId) {
+        boolean open = phaseRepository.findByParentPhaseId(parentId).stream()
+                .anyMatch(s -> !isClosed(s.getStatus()));
+        if (open) {
+            throw new CustomException(ErrorCode.PROJECT_PHASE_HAS_OPEN_SUBPHASES, HttpStatus.CONFLICT);
+        }
+    }
+
+    private void requireValidTransition(PhaseStatus from, PhaseStatus to) {
+        boolean ok = switch (from) {
+            case CREATED             -> to == PhaseStatus.ACTIVE || to == PhaseStatus.CANCELLED;
+            case ACTIVE              -> to == PhaseStatus.TERMINATED || to == PhaseStatus.CANCELLED;
+            case TERMINATED, CANCELLED -> false;   // terminal
+        };
+        if (!ok) {
+            throw new CustomException(ErrorCode.PROJECT_PHASE_INVALID_STATUS, HttpStatus.CONFLICT);
+        }
+    }
+
+    private boolean isClosed(PhaseStatus status) {
+        return status == PhaseStatus.TERMINATED || status == PhaseStatus.CANCELLED;
+    }
+
     private void requireProjectAcceptsPhaseChanges(Project project) {
         ProjectStatus s = project.getStatus();
         if (s == ProjectStatus.TERMINATED || s == ProjectStatus.ARCHIVED) {
@@ -166,8 +286,8 @@ public class ProjectPhaseService {
         }
     }
 
-    private void requirePhaseNotTerminated(ProjectPhase phase) {
-        if (phase.getStatus() == PhaseStatus.TERMINATED) {
+    private void requirePhaseNotClosed(ProjectPhase phase) {
+        if (isClosed(phase.getStatus())) {
             throw new CustomException(ErrorCode.PROJECT_PHASE_INVALID_STATUS, HttpStatus.CONFLICT);
         }
     }
@@ -186,10 +306,37 @@ public class ProjectPhaseService {
         }
     }
 
-    /** The phases' weights (excluding {@code excludePhaseId}) plus {@code candidate} must be ≤ 100. */
-    private void requireWeightWithinBudget(UUID projectId, UUID excludePhaseId, BigDecimal candidate) {
-        BigDecimal others = phaseRepository.findByProjectId(projectId).stream()
-                .filter(p -> excludePhaseId == null || !p.getId().equals(excludePhaseId))
+    /** A sous-phase's schedule must lie within its parent phase's schedule. */
+    private void requireWithinParent(ProjectPhase parent, LocalDate start, LocalDate end) {
+        LocalDate ps = parent.getStartDate();
+        LocalDate pe = parent.getEndDate();
+        if ((ps != null && start != null && start.isBefore(ps))
+                || (pe != null && end != null && end.isAfter(pe))) {
+            throw new CustomException(ErrorCode.PROJECT_SUBPHASE_OUTSIDE_PARENT, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    /** A parent phase's new schedule must still contain every non-cancelled sous-phase. */
+    private void requireContainsSubPhases(UUID parentId, LocalDate start, LocalDate end) {
+        for (ProjectPhase sub : phaseRepository.findByParentPhaseId(parentId)) {
+            if (sub.getStatus() == PhaseStatus.CANCELLED) {
+                continue;
+            }
+            if ((start != null && sub.getStartDate() != null && sub.getStartDate().isBefore(start))
+                    || (end != null && sub.getEndDate() != null && sub.getEndDate().isAfter(end))) {
+                throw new CustomException(ErrorCode.PROJECT_SUBPHASE_OUTSIDE_PARENT, HttpStatus.BAD_REQUEST);
+            }
+        }
+    }
+
+    /** Non-cancelled siblings (same parent) plus {@code candidate} must weigh ≤ 100. */
+    private void requireWeightWithinBudget(UUID projectId, UUID parentId, UUID excludeId, BigDecimal candidate) {
+        List<ProjectPhase> siblings = parentId == null
+                ? phaseRepository.findByProjectIdAndParentPhaseIdIsNullOrderByStartDateAscCreatedAtAsc(projectId)
+                : phaseRepository.findByParentPhaseId(parentId);
+        BigDecimal others = siblings.stream()
+                .filter(p -> excludeId == null || !p.getId().equals(excludeId))
+                .filter(p -> p.getStatus() != PhaseStatus.CANCELLED)
                 .map(ProjectPhase::getWeight)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -200,6 +347,14 @@ public class ProjectPhaseService {
 
     private BigDecimal nz(BigDecimal v) {
         return v != null ? v : BigDecimal.ZERO;
+    }
+
+    private double dbl(BigDecimal v) {
+        return v != null ? v.doubleValue() : 0d;
+    }
+
+    private double round2(double v) {
+        return Math.round(v * 100.0) / 100.0;
     }
 
     private String trimToNull(String s) {

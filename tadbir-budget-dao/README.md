@@ -20,7 +20,7 @@ Persistence layer. Owns everything database-related: JPA entities, Spring Data r
 | `Project` | `project` | ✓ `@Audited` | Project/program (status, chef, org unit, start date, termination date). NOT_STARTED→ACTIVE→TERMINATED→ARCHIVED. |
 | `ProjectMember` | `project_member` | ✓ `@Audited` | A team member of a project (user + function). |
 | `ProjectDocument` | `project_document` | — | A file attached to a project (any type); stores the storage key + metadata + uploader. |
-| `ProjectPhase` | `project_phase` | ✓ `@Audited` | A phase (étape) of a project: title, status, weight (poids), completion, current + baseline schedule. |
+| `ProjectPhase` | `project_phase` | ✓ `@Audited` | A phase or sous-phase (self-ref `parent_phase_id`, 2 levels) of a project: title, status (incl. CANCELLED), weight, completion, current + baseline schedule. |
 | `AppSetting` | `app_setting` | — | Company-wide key/value setting (paramétrage). |
 | `RefreshToken` | `refresh_tokens` | — | Refresh token linked to a user |
 | `AuthAudit` | `auth_audit` | — | Append-only auth event log (LOGIN/LOGOUT/TOKEN_REFRESH) |
@@ -77,7 +77,8 @@ master.xml
     ├── 2026_07_24_project_lifecycle.xml  project.start_date + widen status check (NOT_STARTED)
     ├── 2026_07_26_project_terminate_date.xml  termination_year → termination_date (full date)
     ├── 2026_07_26_project_document.xml   project_document (files of any type, FK cascade)
-    └── 2026_07_26_project_phase.xml      project_phase (+ audit): phases with weight/completion + baseline
+    ├── 2026_07_26_project_phase.xml      project_phase (+ audit): phases with weight/completion + baseline
+    └── 2026_07_28_project_phase_subphase.xml  phase.parent_phase_id (self-FK, 2 levels) + status CANCELLED
 ```
 
 > The tree-type tables shipped in an earlier build as `budget_tree_type` / `budget_tree_level`;

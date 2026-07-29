@@ -87,6 +87,14 @@ public enum ErrorCode {
     /** A phase cannot start before its project's start date. */
     PROJECT_PHASE_START_BEFORE_PROJECT,
     PROJECT_PHASE_WEIGHT_EXCEEDED,
+    /** A sous-phase cannot be nested under another sous-phase (two levels only). */
+    PROJECT_SUBPHASE_NESTING,
+    /** A sous-phase's schedule must lie within its parent phase's schedule. */
+    PROJECT_SUBPHASE_OUTSIDE_PARENT,
+    /** A sous-phase can only be started once its parent phase is ACTIVE. */
+    PROJECT_PHASE_PARENT_NOT_ACTIVE,
+    /** A phase cannot be terminated while some of its sous-phases are still open. */
+    PROJECT_PHASE_HAS_OPEN_SUBPHASES,
 
     // ── Organisation structure ───────────────────────────────────────────────
     ORG_UNIT_NOT_FOUND,

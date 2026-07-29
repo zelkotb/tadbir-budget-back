@@ -204,12 +204,14 @@ public class ProjectService {
             throw new CustomException(ErrorCode.PROJECT_INVALID_STATUS, HttpStatus.CONFLICT);
         }
         List<ProjectPhase> phases = phaseRepository.findByProjectId(id);
-        // Every phase must be closed manually before the project itself can be terminated.
-        if (phases.stream().anyMatch(ph -> ph.getStatus() != PhaseStatus.TERMINATED)) {
+        // Every phase must be closed (terminated or cancelled) before the project can be terminated.
+        if (phases.stream().anyMatch(ph -> ph.getStatus() != PhaseStatus.TERMINATED
+                && ph.getStatus() != PhaseStatus.CANCELLED)) {
             throw new CustomException(ErrorCode.PROJECT_HAS_OPEN_PHASES, HttpStatus.CONFLICT);
         }
-        // The project cannot end before its last phase ends.
+        // The project cannot end before its last (non-cancelled) phase ends.
         LocalDate lastPhaseEnd = phases.stream()
+                .filter(ph -> ph.getStatus() != PhaseStatus.CANCELLED)
                 .map(ProjectPhase::getEndDate)
                 .filter(d -> d != null)
                 .max(Comparator.naturalOrder())

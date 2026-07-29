@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+
+    This source code is the exclusive property of Zakaria El Kotb.
+    Unauthorized copying, modification, distribution, or use of this file,
+    via any medium, is strictly prohibited without the prior written
+    permission of the copyright owner.
+
+    Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+
+-->
+<!--
+    Sous-phases: a phase can have sous-phases (self-referencing parent_phase_id, two levels; deleting
+    a parent cascades to its sous-phases). Plus a new terminal status CANCELLED (résilié/annulé) for
+    phases and sous-phases. Forward migration (add column / drop-recreate the status check) so it is
+    safe whether project_phase was already deployed or is created fresh.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="project_phase_add_parent" author="zakaria el kotb">
+        <sql>alter table project_phase add column if not exists parent_phase_id uuid;</sql>
+        <sql>alter table project_phase_audit add column if not exists parent_phase_id uuid;</sql>
+        <sql>
+            alter table project_phase add constraint fk_phase_parent
+                foreign key (parent_phase_id) references project_phase (id) on delete cascade;
+        </sql>
+        <sql>create index if not exists idx_phase_parent on project_phase (parent_phase_id);</sql>
+        <rollback>
+            <sql>alter table project_phase drop constraint if exists fk_phase_parent;</sql>
+            <sql>drop index if exists idx_phase_parent;</sql>
+            <sql>alter table project_phase drop column if exists parent_phase_id;</sql>
+            <sql>alter table project_phase_audit drop column if exists parent_phase_id;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="project_phase_status_add_cancelled" author="zakaria el kotb">
+        <sql>alter table project_phase drop constraint if exists project_phase_status_check;</sql>
+        <sql>
+            alter table project_phase add constraint project_phase_status_check
+                check (status in ('CREATED','ACTIVE','TERMINATED','CANCELLED'));
+        </sql>
+        <rollback>
+            <sql>alter table project_phase drop constraint if exists project_phase_status_check;</sql>
+            <sql>
+                alter table project_phase add constraint project_phase_status_check
+                    check (status in ('CREATED','ACTIVE','TERMINATED'));
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -31,4 +31,5 @@
     <include file="db/changelog/slave/2026_07_26_project_terminate_date.xml"/>
     <include file="db/changelog/slave/2026_07_26_project_document.xml"/>
     <include file="db/changelog/slave/2026_07_26_project_phase.xml"/>
+    <include file="db/changelog/slave/2026_07_28_project_phase_subphase.xml"/>
 </databaseChangeLog>

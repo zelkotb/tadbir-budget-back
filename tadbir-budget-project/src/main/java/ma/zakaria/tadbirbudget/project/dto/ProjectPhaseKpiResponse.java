@@ -28,14 +28,15 @@ public record ProjectPhaseKpiResponse(
 ) {
     public record PhaseKpi(
             UUID           phaseId,
+            UUID           parentPhaseId,        // null for a top-level phase
             String         title,
             PhaseStatus    status,
 
             double         weight,               // poids
-            double         completion,           // avancement réel
+            double         completion,           // avancement réel (rolled up from sous-phases for a parent)
             double         completionPlanifiee,  // expected progress at referenceDate
             double         ecartAvancement,      // completion − completionPlanifiee
-            double         contributionPonderee, // weight·completion / 100 (points on the project)
+            double         contributionPonderee, // weight·completion / 100 (0 when cancelled)
             ScheduleHealth statutDelai,          // derived badge from ecartAvancement
 
             Long           retardJours,          // endDate − firstEndDate (null if a date is missing)
@@ -48,6 +49,8 @@ public record ProjectPhaseKpiResponse(
             LocalDate      firstStartDate,
             LocalDate      firstEndDate,
             LocalDate      startDate,
-            LocalDate      endDate
+            LocalDate      endDate,
+
+            List<PhaseKpi> sousPhases            // sous-phase KPIs (empty for a sous-phase / leaf)
     ) {}
 }

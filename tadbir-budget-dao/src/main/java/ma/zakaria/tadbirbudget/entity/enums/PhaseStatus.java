@@ -11,12 +11,14 @@
 package ma.zakaria.tadbirbudget.entity.enums;
 
 /**
- * Lifecycle of a project phase. The declaration order is significant: transitions are forward-only,
- * one step at a time ({@code CREATED → ACTIVE → TERMINATED}). {@code TERMINATED} is terminal — a
- * terminated phase can neither change status nor be edited.
+ * Lifecycle of a project phase or sous-phase. Allowed transitions:
+ * {@code CREATED → ACTIVE → TERMINATED}, plus {@code CREATED → CANCELLED} and
+ * {@code ACTIVE → CANCELLED}. {@code TERMINATED} and {@code CANCELLED} (résilié/annulé) are terminal —
+ * a closed phase can neither change status nor be edited. Cancelled phases are excluded from the KPIs.
  */
 public enum PhaseStatus {
     CREATED,
     ACTIVE,
-    TERMINATED
+    TERMINATED,
+    CANCELLED
 }

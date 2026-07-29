@@ -21,4 +21,14 @@ public interface ProjectPhaseRepository extends JpaRepository<ProjectPhase, UUID
     List<ProjectPhase> findByProjectIdOrderByStartDateAscCreatedAtAsc(UUID projectId);
 
     List<ProjectPhase> findByProjectId(UUID projectId);
+
+    /** Top-level phases of a project (no parent). */
+    List<ProjectPhase> findByProjectIdAndParentPhaseIdIsNullOrderByStartDateAscCreatedAtAsc(UUID projectId);
+
+    /** Sous-phases of a phase. */
+    List<ProjectPhase> findByParentPhaseIdOrderByStartDateAscCreatedAtAsc(UUID parentPhaseId);
+
+    List<ProjectPhase> findByParentPhaseId(UUID parentPhaseId);
+
+    boolean existsByParentPhaseId(UUID parentPhaseId);
 }

@@ -41,55 +41,69 @@ by default). Upload on an `ARCHIVED` project → `PROJECT_INVALID_STATUS`; unkno
 
 ### Phases — `/api/v1/projects/{projectId}/phases`
 
-A project is followed **step by step** through phases (`project_phase`, Envers-audited). Each phase has
-a `title`, `description`, `status`, a `weight` (poids — its share of the project) and a `completion`
-(avancement — its own progress 0→100), a current schedule (`startDate`/`endDate`) and an **immutable
-baseline** (`firstStartDate`/`firstEndDate`, captured at creation) used to compute delays.
+A project is followed **step by step** through phases (`project_phase`, Envers-audited). A phase can
+have **sous-phases** — a sous-phase is a phase with a `parentPhaseId` (two levels only), same fields
+and same rules. Each phase/sous-phase has a `title`, `description`, `status`, a `weight` (poids — its
+share of its parent: a phase's share of the project, a sous-phase's share of its phase) and a
+`completion`, a current schedule (`startDate`/`endDate`) and an **immutable baseline**
+(`firstStartDate`/`firstEndDate`) used to compute delays. A parent phase's `completion` is **derived**
+(Σ non-cancelled sous `weight·completion / 100`, kept denormalized); leaf phases carry their own.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `GET` | `/phases` | Read scope | List phases (ordered by schedule) |
+| `GET` | `/phases` | Read scope | List top-level phases |
 | `GET` | `/phases/{phaseId}` | Read scope | One phase |
-| `POST` | `/phases` | Chef / manager-in-scope | Create (starts `CREATED`; captures baseline) |
-| `PATCH` | `/phases/{phaseId}` | Chef / manager-in-scope | Update content (blocked once `TERMINATED`) |
-| `PATCH` | `/phases/{phaseId}/status` | Chef / manager-in-scope | Move forward: `CREATED → ACTIVE → TERMINATED` |
-| `DELETE` | `/phases/{phaseId}` | Chef / manager-in-scope | Remove (blocked once `TERMINATED`) |
+| `GET` | `/phases/{phaseId}/subphases` | Read scope | List a phase's sous-phases |
+| `POST` | `/phases` | Chef / manager-in-scope | Create a phase (`CREATED`; captures baseline) |
+| `POST` | `/phases/{phaseId}/subphases` | Chef / manager-in-scope | Create a sous-phase under a phase |
+| `PATCH` | `/phases/{phaseId}` | Chef / manager-in-scope | Update content (any level; blocked once closed) |
+| `PATCH` | `/phases/{phaseId}/status` | Chef / manager-in-scope | Change status (any level) |
+| `DELETE` | `/phases/{phaseId}` | Chef / manager-in-scope | Remove (any level; cascades to sous-phases) |
 
-Rules: status is **forward-only, one step at a time** — no skipping, no going back, a `TERMINATED`
-phase is read-only (`PROJECT_PHASE_INVALID_STATUS`); terminating a phase sets its `completion` to
-**100**. The phases' `weight`s may never sum to more than
-100 (`PROJECT_PHASE_WEIGHT_EXCEEDED`). `endDate` ≥ `startDate` (`PROJECT_PHASE_INVALID_DATES`). A phase
-may not **start before the project's `startDate`** (checked only once the project has started —
-`PROJECT_PHASE_START_BEFORE_PROJECT`). Unknown phase → `PROJECT_PHASE_NOT_FOUND`.
+Status — `CREATED → ACTIVE → TERMINATED` (forward-only, one step), plus `CREATED/ACTIVE → CANCELLED`
+(résilié/annulé). Recording a **positive `completion` on a `CREATED` (leaf) phase auto-starts it**
+(→ `ACTIVE`), subject to the same container-active rule (project/parent must be ACTIVE). `TERMINATED` and `CANCELLED` are **terminal** (read-only,
+`PROJECT_PHASE_INVALID_STATUS`). Terminating a **leaf** phase sets its `completion` to **100**; a
+**parent** keeps its rolled-up completion and requires all its sous-phases closed first
+(`PROJECT_PHASE_HAS_OPEN_SUBPHASES`). **Cancelling a parent cascades** to its open sous-phases.
+Siblings' (non-cancelled) `weight`s may never sum to more than 100 (`PROJECT_PHASE_WEIGHT_EXCEEDED`).
+`endDate ≥ startDate` (`PROJECT_PHASE_INVALID_DATES`). A phase may not start before the project's
+`startDate` (`PROJECT_PHASE_START_BEFORE_PROJECT`). A sous-phase can't be nested under a sous-phase
+(`PROJECT_SUBPHASE_NESTING`). A **sous-phase's schedule must sit inside its parent phase's schedule**,
+and a parent's schedule can't be changed to a window that would exclude one of its sous-phases —
+both `PROJECT_SUBPHASE_OUTSIDE_PARENT`. Unknown → `PROJECT_PHASE_NOT_FOUND`.
 
-Phase ↔ project-status coupling:
-- Phases may be **created/edited while the project is `NOT_STARTED`** (planning) or `ACTIVE`.
-- A phase can be **started (`→ ACTIVE`) only when the project is `ACTIVE`** — you can't start a phase
-  of a project that hasn't started (`PROJECT_NOT_ACTIVE`).
-- **All phases must be `TERMINATED` (closed manually) before the project can be terminated**
-  (`PROJECT_HAS_OPEN_PHASES`).
-- Once the project is `TERMINATED` (or `ARCHIVED`), **all phase actions are frozen** — no create,
-  update, status change or delete (`PROJECT_INVALID_STATUS`). Reads stay open.
+Status coupling (same logic at each level):
+- Created/edited while the project is `NOT_STARTED` (planning) or `ACTIVE`.
+- A **top-level phase starts only when the project is `ACTIVE`** (`PROJECT_NOT_ACTIVE`); a **sous-phase
+  starts only when its parent phase is `ACTIVE`** (`PROJECT_PHASE_PARENT_NOT_ACTIVE`).
+- **All phases must be closed** (`TERMINATED` **or** `CANCELLED`) before the project can be terminated
+  (`PROJECT_HAS_OPEN_PHASES`); `terminationDate` ≥ latest non-cancelled phase `endDate`.
+- Once the project is `TERMINATED`/`ARCHIVED`, all phase actions are frozen (`PROJECT_INVALID_STATUS`).
 
 ### KPIs (computed on the backend — single source of truth, read scope)
 
 Two families, evaluated at `referenceDate` (server "today"). Percentages 0–100 (2 decimals); delays &
 durations in days (`> 0` = late / stretched).
 
-**Project-level** — `GET /api/v1/projects/{id}/kpis` (lean, non-redundant headline set; trivial diffs
-left to the front). Both advancements measure against the **whole** project (0–100):
-- `avancementPlanifie` = **Σ weight** — how much of the project has been planned into phases (the
-  target ceiling; climbs to 100 as phases are added).
-- `avancementPondere` = **Σ(weight·completion) / 100** — actual progress; unplanned weight counts as
-  0, so `pondéré ≤ planifié ≤ 100`. *(e.g. one phase weight 10, completion 50 → planifié 10, pondéré 5.)*
-- `countCreated`, `countActive`, `countTerminated` (total = their sum).
+Roll-up: a parent phase's `completion` is the weighted roll-up of its non-cancelled sous-phases; the
+project then rolls the top-level phases up again. **Cancelled** phases/sous-phases are excluded from
+weights and advancement everywhere.
+
+**Project-level** — `GET /api/v1/projects/{id}/kpis` (lean; trivial diffs left to the front). Over the
+**non-cancelled top-level** phases, both advancements measure against the whole project (0–100):
+- `avancementPlanifie` = **Σ weight** — how much of the project is planned into phases (target ceiling).
+- `avancementPondere` = **Σ(weight·completion) / 100** — actual progress (unplanned/cancelled = 0), so
+  `pondéré ≤ planifié ≤ 100`. *(e.g. phase weight 10, completion 50 → planifié 10, pondéré 5.)*
+- `countCreated`, `countActive`, `countTerminated`, `countCancelled` (total = their sum).
 - `phasesEnRetard`.
 - `dateFinReference` (max firstEndDate) & `dateFinEstimee` (max endDate) — global delay in days is
   `dateFinEstimee − dateFinReference`.
 
 **Phase-level** — `GET /api/v1/projects/{id}/phases/kpis` → `{ projectId, referenceDate, phases[] }`,
-one `PhaseKpi` per phase: `weight`, `completion`, `completionPlanifiee`, `ecartAvancement`,
-`contributionPonderee` (`weight·completion/100`), `statutDelai`, `retardJours`, `retardDebutJours`,
+one `PhaseKpi` per **top-level** phase with a nested **`sousPhases[]`** of the same shape. Each carries
+`parentPhaseId`, `weight`, `completion`, `completionPlanifiee`, `ecartAvancement`, `contributionPonderee`
+(`weight·completion/100`, **0 when cancelled**), `statutDelai`, `retardJours`, `retardDebutJours`,
 `dureePlanifieeJours`, `dureeEstimeeJours`, `glissementJours`, and the baseline/current dates.
 
 ## Roles & scoping

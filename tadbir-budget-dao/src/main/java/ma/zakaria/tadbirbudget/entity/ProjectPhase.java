@@ -56,6 +56,10 @@ public class ProjectPhase {
     @Column(name = "project_id", nullable = false, columnDefinition = "uuid")
     private UUID projectId;
 
+    /** Parent phase for a sous-phase; {@code null} for a top-level phase. Two levels only. */
+    @Column(name = "parent_phase_id", columnDefinition = "uuid")
+    private UUID parentPhaseId;
+
     @Column(nullable = false)
     private String title;
 

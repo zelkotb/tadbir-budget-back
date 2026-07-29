@@ -64,6 +64,21 @@ public class ProjectPhaseController {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(projectId, input));
     }
 
+    /** GET — list a phase's sous-phases. */
+    @GetMapping("/{phaseId}/subphases")
+    public ResponseEntity<List<PhaseResponse>> listSubPhases(@PathVariable UUID projectId,
+                                                             @PathVariable UUID phaseId) {
+        return ResponseEntity.ok(service.listSubPhases(projectId, phaseId));
+    }
+
+    /** POST — create a sous-phase under a phase (same rules as a phase). */
+    @PostMapping("/{phaseId}/subphases")
+    public ResponseEntity<PhaseResponse> createSubPhase(@PathVariable UUID projectId,
+                                                        @PathVariable UUID phaseId,
+                                                        @Valid @RequestBody CreatePhaseInput input) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.createSubPhase(projectId, phaseId, input));
+    }
+
     /** PATCH — update a phase's content (blocked once TERMINATED). */
     @PatchMapping("/{phaseId}")
     public ResponseEntity<PhaseResponse> update(@PathVariable UUID projectId, @PathVariable UUID phaseId,
