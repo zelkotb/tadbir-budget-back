@@ -23,8 +23,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.time.temporal.Temporal;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -36,22 +41,42 @@ import java.util.stream.Collectors;
  * {@link ma.zakaria.tadbirbudget.filter.MdcFilter} + Micrometer, so this aspect only adds the
  * call-specific payload.
  *
- * <p><b>Secrets are never logged.</b> Any field whose name looks like a credential
- * (password, token, jwt, secret…) is rendered as {@code ***}, and binary payloads
- * (files, streamed resources) are summarised rather than dumped.
+ * <p><b>Safe by construction:</b>
+ * <ul>
+ *   <li><b>Secrets</b> — any field whose name <i>contains</i> a credential word (password, secret,
+ *       token, jwt, apiKey, clientSecret, credential…) or <i>is</i> a short secret (otp, pin, cvv…)
+ *       renders as {@code ***}. Map keys are checked too.</li>
+ *   <li><b>Long values</b> — a value longer than {@link #MAX_VALUE_LEN} chars (e.g. a big
+ *       {@code description}) is never dumped; it is summarised as {@code <text N chars>}.</li>
+ *   <li><b>Structure</b> — collections, maps and nested in-house DTOs are rendered recursively
+ *       <i>through the same masking</i> (capped in width and depth), so a secret nested inside a
+ *       list element or map is still hidden. Binary/streamed payloads are summarised, never dumped.</li>
+ * </ul>
  */
 @Slf4j
 @Aspect
 @Component
 public class ControllerLoggingAspect {
 
-    /** Field names (lower-cased) whose values must never reach the logs. */
-    private static final Set<String> SECRET_FIELDS = Set.of(
-            "password", "currentpassword", "newpassword", "oldpassword",
-            "jwt", "token", "accesstoken", "refreshtoken", "secret", "credential");
+    /** Credential markers matched as substrings of the (lower-cased) field/key name. */
+    private static final Set<String> SECRET_SUBSTRINGS = Set.of(
+            "password", "passwd", "secret", "token", "jwt",
+            "credential", "apikey", "privatekey", "authorization");
 
-    /** Hard cap so a large body can never flood the logs. */
-    private static final int MAX_LEN = 2_000;
+    /** Short credential markers matched as whole words (so "shipping" isn't caught by "pin"). */
+    private static final Set<String> SECRET_WORDS = Set.of(
+            "otp", "totp", "mfa", "pin", "cvv", "ssn", "cookie");
+
+    /** A single value longer than this is summarised (length only), never printed. */
+    private static final int MAX_VALUE_LEN = 256;
+    /** Max elements shown from a collection/map. */
+    private static final int MAX_ITEMS = 20;
+    /** Max nesting depth before we stop descending. */
+    private static final int MAX_DEPTH = 4;
+    /** Overall backstop so one line can never flood the logs. */
+    private static final int MAX_LINE_LEN = 2_000;
+
+    private static final Pattern CAMEL_BOUNDARY = Pattern.compile("([a-z0-9])([A-Z])");
 
     @Pointcut("within(@org.springframework.web.bind.annotation.RestController *)")
     public void restControllers() { }
@@ -61,11 +86,12 @@ public class ControllerLoggingAspect {
         String endpoint = pjp.getSignature().getDeclaringType().getSimpleName()
                 + "." + pjp.getSignature().getName();
 
-        log.info("API IN  {}({})", endpoint, formatArgs(pjp.getArgs()));
+        log.info("API IN  {}({})", endpoint, capLine(formatArgs(pjp.getArgs())));
         long start = System.currentTimeMillis();
         try {
             Object result = pjp.proceed();
-            log.info("API OUT {} [{} ms] {}", endpoint, System.currentTimeMillis() - start, formatResult(result));
+            log.info("API OUT {} [{} ms] {}", endpoint, System.currentTimeMillis() - start,
+                    capLine(formatResult(result)));
             return result;
         } catch (Throwable ex) {
             log.warn("API ERR {} [{} ms] {}: {}", endpoint, System.currentTimeMillis() - start,
@@ -80,58 +106,113 @@ public class ControllerLoggingAspect {
         if (args == null || args.length == 0) {
             return "";
         }
-        return Arrays.stream(args).map(this::render).collect(Collectors.joining(", "));
+        return Arrays.stream(args).map(a -> render(a, 0)).collect(Collectors.joining(", "));
     }
 
     private String formatResult(Object result) {
         if (result instanceof ResponseEntity<?> re) {
-            return "status=" + re.getStatusCode().value() + " body=" + render(re.getBody());
+            return "status=" + re.getStatusCode().value() + " body=" + render(re.getBody(), 0);
         }
-        return render(result);
+        return render(result, 0);
     }
 
-    /** Renders one value safely: framework/binary types summarised, app DTOs field-redacted. */
-    private String render(Object value) {
-        if (value == null)                       return "null";
-        if (value instanceof ServletRequest)     return "<request>";
-        if (value instanceof ServletResponse)    return "<response>";
-        if (value instanceof Resource)           return "<stream>";
-        if (value instanceof byte[] b)           return "<binary " + b.length + "B>";
-        if (value instanceof MultipartFile f)    return "File(" + f.getOriginalFilename() + ", " + f.getSize() + "B)";
-        if (value instanceof Iterable<?> || value instanceof java.util.Map) {
-            return cap(String.valueOf(value)); // collections: rely on element toString, capped
+    /** Renders one value safely: binary types summarised, long values elided, app DTOs field-masked. */
+    private String render(Object value, int depth) {
+        if (value == null)                    return "null";
+        if (value instanceof ServletRequest)  return "<request>";
+        if (value instanceof ServletResponse) return "<response>";
+        if (value instanceof Resource)        return "<stream>";
+        if (value instanceof byte[] b)        return "<binary " + b.length + "B>";
+        if (value instanceof MultipartFile f) return "File(" + f.getOriginalFilename() + ", " + f.getSize() + "B)";
+        if (value instanceof CharSequence cs) return renderScalar(cs.toString());
+        if (value instanceof Number || value instanceof Boolean || value instanceof Character
+                || value instanceof UUID || value instanceof Temporal || value instanceof Enum<?>) {
+            return renderScalar(String.valueOf(value));
         }
+        if (depth >= MAX_DEPTH)               return "<…>";
+        if (value instanceof Map<?, ?> m)     return renderMap(m, depth);
+        if (value instanceof Iterable<?> it)  return renderIterable(it, depth);
+        if (value instanceof Object[] arr)    return renderIterable(Arrays.asList(arr), depth);
         if (value.getClass().getName().startsWith("ma.zakaria.tadbirbudget")) {
-            return renderAppObject(value);
+            return renderAppObject(value, depth);
         }
-        return cap(String.valueOf(value));
+        return renderScalar(String.valueOf(value));
     }
 
     /** Reflectively render an in-house DTO/entity, masking secret-looking fields. */
-    private String renderAppObject(Object value) {
+    private String renderAppObject(Object value, int depth) {
         StringBuilder sb = new StringBuilder(value.getClass().getSimpleName()).append('(');
         boolean first = true;
         for (Field field : value.getClass().getDeclaredFields()) {
-            if (field.isSynthetic()) continue;
+            if (field.isSynthetic() || Modifier.isStatic(field.getModifiers())) {
+                continue;
+            }
             if (!first) sb.append(", ");
             first = false;
             sb.append(field.getName()).append('=');
-            if (SECRET_FIELDS.contains(field.getName().toLowerCase())) {
+            if (looksSecret(field.getName())) {
                 sb.append("***");
                 continue;
             }
             try {
                 field.setAccessible(true);
-                Object fieldValue = field.get(value);
-                sb.append(fieldValue == null ? "null" : cap(String.valueOf(fieldValue)));
+                sb.append(render(field.get(value), depth + 1));
             } catch (Exception e) {
-                sb.append("?");
+                sb.append('?');
             }
         }
-        return cap(sb.append(')').toString());
+        return sb.append(')').toString();
     }
 
-    private String cap(String s) {
-        return s.length() <= MAX_LEN ? s : s.substring(0, MAX_LEN) + "…(" + s.length() + " chars)";
+    private String renderIterable(Iterable<?> it, int depth) {
+        StringBuilder sb = new StringBuilder("[");
+        int i = 0;
+        for (Object e : it) {
+            if (i >= MAX_ITEMS) { sb.append(", …+more"); break; }
+            if (i++ > 0) sb.append(", ");
+            sb.append(render(e, depth + 1));
+        }
+        return sb.append(']').toString();
+    }
+
+    private String renderMap(Map<?, ?> map, int depth) {
+        StringBuilder sb = new StringBuilder("{");
+        int i = 0;
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            if (i >= MAX_ITEMS) { sb.append(", …+more"); break; }
+            if (i++ > 0) sb.append(", ");
+            String key = String.valueOf(entry.getKey());
+            sb.append(key).append('=')
+                    .append(looksSecret(key) ? "***" : render(entry.getValue(), depth + 1));
+        }
+        return sb.append('}').toString();
+    }
+
+    /** Show a scalar/string value, or just its length when it is too long to log. */
+    private String renderScalar(String s) {
+        return s.length() <= MAX_VALUE_LEN ? s : "<text " + s.length() + " chars>";
+    }
+
+    // ── Secret detection ───────────────────────────────────────────────────────────
+
+    private boolean looksSecret(String name) {
+        if (name == null || name.isEmpty()) {
+            return false;
+        }
+        String lower = name.toLowerCase();
+        if (SECRET_SUBSTRINGS.stream().anyMatch(lower::contains)) {
+            return true;
+        }
+        Set<String> words = Arrays.stream(
+                        CAMEL_BOUNDARY.matcher(name).replaceAll("$1 $2")
+                                .replace('_', ' ').replace('-', ' ')
+                                .toLowerCase().split(" +"))
+                .filter(w -> !w.isEmpty())
+                .collect(Collectors.toSet());
+        return SECRET_WORDS.stream().anyMatch(words::contains);
+    }
+
+    private String capLine(String s) {
+        return s.length() <= MAX_LINE_LEN ? s : s.substring(0, MAX_LINE_LEN) + "…(" + s.length() + " chars)";
     }
 }

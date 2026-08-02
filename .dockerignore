@@ -1,8 +1,0 @@
-# Keep the build context small. The app jar under tadbir-budget-app/target IS needed,
-# so do not exclude target globally.
-.git
-.idea
-*.iml
-tadbir-files
-*.tar.gz
-deploy/*.env

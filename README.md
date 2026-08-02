@@ -120,83 +120,17 @@ mvn verify -Psecurity                  # + OWASP dependency-check (fails on CVSS
 
 ---
 
-## Deployment (Docker)
+## Deployment
 
-The image is built on your machine and shipped to the server (no JDK/Maven/source on the server).
-
-| File | Where | Purpose |
-|---|---|---|
-| `pom.xml` `<version>` | repo root | **The single place the release version is set** |
-| `Dockerfile` | repo root | Runtime image (JRE + the pre-built jar) |
-| `docker-compose.yml` | repo root | Postgres + backend stack |
-| `.env` | repo root (**git-ignored**) | Secrets & config (DB, `JWT_SECRET`, CORS, mail) |
-| `deploy/build-and-ship.ps1` | Windows | reads `pom.xml` version → `mvn package` → `docker build`/`save` → `scp -r` |
-| `deploy/install-docker.sh` | VM (Rocky) | One-time Docker install + firewall + log rotation |
-| `deploy/deploy.sh` | VM | `docker load` + `docker compose up -d` (version derived from the tarball) |
-
-**Flow**
-
-```powershell
-# Windows (repo root) — set the version in pom.xml first, then:
-./deploy/build-and-ship.ps1            # ships to root@<vm>:/opt/tadbir-<version>/
-```
-```bash
-# VM (Rocky), inside the shipped folder:
-cd /opt/tadbir-<version>
-sed -i 's/\r//' install-docker.sh deploy.sh   # strip Windows line endings (each copy)
-bash install-docker.sh                          # first time only, then: newgrp docker
-chmod 600 .env
-bash deploy.sh                                   # load image + start
-```
-
-### Secrets & configuration (`.env`)
-
-`.env` (and `.env.example`) are **git-ignored** — they hold real credentials. Copy `.env.example`
-to `.env` and fill it in. Required keys:
-
-| Key | Meaning |
-|---|---|
-| `DATABASE_NAME` / `DATABASE_USERNAME` / `DATABASE_PASSWORD` | Postgres database + credentials |
-| `JWT_SECRET` | Base64, ≥ 256-bit — generate with `openssl rand -base64 32` |
-| `CORS_ALLOWED_ORIGINS` | Frontend origin(s); unused when the frontend proxies `/api` (same origin) |
-| `APP_COOKIE_SECURE` | `false` on plain HTTP, `true` with HTTPS |
-| `MAIL_ENABLED` / `MAIL_HOST` / `MAIL_PORT` / `MAIL_USERNAME` / `MAIL_PASSWORD` / `MAIL_FROM` | SMTP (e-mail notifications); `false` = log instead of send |
-
-### First admin
-
-Liquibase seeds one admin on first boot: **uid `pm.admin`, password `P@ss2026`** (`ROLE_ADMIN`).
-Log in, change the password (`PUT /api/v1/user/{id}/password`), then create the real users via
-`POST /api/v1/user`. To rotate the seeded password directly in the DB instead:
-
-```bash
-docker compose exec postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" \
-  -c "UPDATE users SET password = crypt('YourNewStrongPass', gen_salt('bf',10)) WHERE uid = 'pm.admin';"
-```
-
-### Services & ports (single host)
-
-`docker-compose.yml` runs two services (a frontend, if any, is deployed separately):
-
-| Service | Container | Port | Data volume |
-|---|---|---|---|
-| PostgreSQL | `tadbir-postgres` | internal only | `tadbir_pgdata` |
-| Backend API | `tadbir-backend` | `127.0.0.1:8080` (localhost only) | `tadbir_files` |
-
-The backend binds to **localhost** — reachable only on the same host (e.g. behind a frontend that
-proxies `/api`), not from the LAN.
-
-### Consulting the logs (on the VM)
-
-Each service writes rolling log files to **`/opt/log/<name>`** on the host (bind mounts):
-
-```bash
-sudo tail -f /opt/log/tadbir-budget-backend/application.log   # backend (30-day history)
-sudo tail -f /opt/log/postgres/postgresql-$(date +%F).log     # database
-grep -i error /opt/log/tadbir-budget-backend/application.log
-```
-
-Docker's own container logs are size-capped at 10 MB × 5 (`install-docker.sh`). Log files and data
-volumes are shared across version folders (pinned project name `tadbir`), so they survive upgrades.
+> **Not defined yet.** The Docker/compose files and deploy scripts were removed — the production
+> deployment (image build, orchestration, secrets delivery) will be (re)written separately.
+>
+> Build the runnable artifact with `mvn -DskipTests clean package` (fat jar in
+> `tadbir-budget-app/target/`). At minimum a real deployment must provide, via environment /
+> externalised config: a datasource, a strong `JWT_SECRET` (Base64, ≥ 256-bit — the app must not fall
+> back to a default in prod), `CORS_ALLOWED_ORIGINS`, `APP_COOKIE_SECURE=true` behind HTTPS, and SMTP
+> settings. Run with `SPRING_PROFILES_ACTIVE=prod`. Liquibase seeds a `pm.admin` admin on first boot
+> (see `2026_07_17_baseline.xml`) — rotate that credential immediately (or scope the seed out of prod).
 
 ---
 
