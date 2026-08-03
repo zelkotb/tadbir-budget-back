@@ -32,4 +32,6 @@
     <include file="db/changelog/slave/2026_07_26_project_document.xml"/>
     <include file="db/changelog/slave/2026_07_26_project_phase.xml"/>
     <include file="db/changelog/slave/2026_07_28_project_phase_subphase.xml"/>
+    <include file="db/changelog/slave/2026_08_02_user_permissions.xml"/>
+    <include file="db/changelog/slave/2026_08_02_permission_rename.xml"/>
 </databaseChangeLog>

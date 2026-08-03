@@ -12,7 +12,7 @@ package ma.zakaria.tadbirbudget.nomenclature.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import ma.zakaria.tadbirbudget.constant.Roles;
+import ma.zakaria.tadbirbudget.constant.Permissions;
 import ma.zakaria.tadbirbudget.nomenclature.dto.CreateNomenclatureInput;
 import ma.zakaria.tadbirbudget.nomenclature.dto.NomenclatureResponse;
 import ma.zakaria.tadbirbudget.nomenclature.dto.UpdateNomenclatureInput;
@@ -26,12 +26,13 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Nomenclatures (the real trees) and their lifecycle. Reads are open to any authenticated user;
- * writes are restricted to admins and contrôle de gestion.
+ * Nomenclatures (the real trees) and their lifecycle. Both reading and writing require the
+ * budget-nomenclature permission (admin always) — see {@link Permissions}.
  */
 @RestController
 @RequestMapping("/api/v1/budget/nomenclatures")
 @RequiredArgsConstructor
+@PreAuthorize(Permissions.CAN_MANAGE_BUDGET_NOMENCLATURE)
 public class NomenclatureController {
 
     private final NomenclatureService service;
@@ -56,14 +57,12 @@ public class NomenclatureController {
 
     /** POST /api/v1/budget/nomenclatures — create against a definition (DRAFT). Admin/CdG. */
     @PostMapping
-    @PreAuthorize(Roles.IS_ADMIN_OR_CG)
     public ResponseEntity<NomenclatureResponse> create(@Valid @RequestBody CreateNomenclatureInput input) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(input));
     }
 
     /** PATCH /api/v1/budget/nomenclatures/{id} — update name/description. Admin/CdG. */
     @PatchMapping("/{id}")
-    @PreAuthorize(Roles.IS_ADMIN_OR_CG)
     public ResponseEntity<NomenclatureResponse> update(@PathVariable UUID id,
                                                        @Valid @RequestBody UpdateNomenclatureInput input) {
         return ResponseEntity.ok(service.update(id, input));
@@ -71,7 +70,6 @@ public class NomenclatureController {
 
     /** POST /api/v1/budget/nomenclatures/{id}/fix — lock the tree (DRAFT → FIXED). Admin/CdG. */
     @PostMapping("/{id}/fix")
-    @PreAuthorize(Roles.IS_ADMIN_OR_CG)
     public ResponseEntity<NomenclatureResponse> fix(@PathVariable UUID id) {
         return ResponseEntity.ok(service.fix(id));
     }
@@ -81,7 +79,6 @@ public class NomenclatureController {
      * nomenclature into a new DRAFT version of the same lineage. Admin/CdG.
      */
     @PostMapping("/{id}/clone")
-    @PreAuthorize(Roles.IS_ADMIN_OR_CG)
     public ResponseEntity<NomenclatureResponse> clone(
             @PathVariable UUID id,
             @RequestParam(defaultValue = "false") boolean copyAssignments) {
@@ -90,14 +87,12 @@ public class NomenclatureController {
 
     /** POST /api/v1/budget/nomenclatures/{id}/archive — retire (→ ARCHIVED). Admin/CdG. */
     @PostMapping("/{id}/archive")
-    @PreAuthorize(Roles.IS_ADMIN_OR_CG)
     public ResponseEntity<NomenclatureResponse> archive(@PathVariable UUID id) {
         return ResponseEntity.ok(service.archive(id));
     }
 
     /** DELETE /api/v1/budget/nomenclatures/{id} — delete a DRAFT nomenclature + its tree. Admin/CdG. */
     @DeleteMapping("/{id}")
-    @PreAuthorize(Roles.IS_ADMIN_OR_CG)
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);
         return ResponseEntity.noContent().build();

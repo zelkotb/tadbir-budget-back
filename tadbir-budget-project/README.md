@@ -114,9 +114,12 @@ one `PhaseKpi` per **top-level** phase with a nested **`sousPhases[]`** of the s
 - **Org scope (the single checkpoint, `authorizeScope`):** a manager may act only on projects whose
   `orgUnitId` is their **own org unit or a descendant** (subtree); admin, anywhere. *A future
   delegation feature extends only this one method.*
-- **Read scope (`authorizeRead`):** anyone whose org unit is the project's unit **or any ancestor up
-  the tree** (owning unit + all parents), plus the project's chef and team members, plus `ADMIN` /
-  `DIRECTION_GENERALE` / `CONTROLE_GESTION` (who see all). Reads include the project and its documents.
+- **Read scope (`authorizeRead` / `list`):** a caller sees a project when — the project's `orgUnitId`
+  is their **own org unit or below** (subtree); **or** they are its **chef** or a team member; **or**
+  the project's chef is one of their **direct reports** (`chef.managerId == caller`). Plus `ADMIN` /
+  `DIRECTION_GENERALE` / `CONTROLE_GESTION` see all. So the project list shows *"projects I manage +
+  projects of people I manage (direct reports, or anyone in my org and below)."* Reads include the
+  project, its documents, phases and KPIs.
 - **Manage (`authorizeManage`, the responsible actions):** the chef de projet (whatever their role)
   **or** a project-creator manager in scope (admin anywhere). Gates `start` and destructive document
   writes (upload / delete). **Team members can see documents but not upload or delete them.**

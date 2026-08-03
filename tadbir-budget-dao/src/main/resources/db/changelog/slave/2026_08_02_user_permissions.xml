@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+
+    This source code is the exclusive property of Zakaria El Kotb.
+    Unauthorized copying, modification, distribution, or use of this file,
+    via any medium, is strictly prohibited without the prior written
+    permission of the copyright owner.
+
+    Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+
+-->
+<!--
+    Fine-grained user permissions (granted à la carte by an admin), carried as authorities alongside
+    roles. Budget nomenclature/definition management moves from the ROLE_CONTROLE_GESTION role to two
+    permissions; existing contrôle-de-gestion users are back-filled so they keep their budget access.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="users_add_permissions" author="zakaria el kotb">
+        <sql>alter table users add column if not exists permissions varchar(255) not null default '';</sql>
+        <sql>alter table users_audit add column if not exists permissions varchar(255);</sql>
+        <rollback>
+            <sql>alter table users drop column if exists permissions;</sql>
+            <sql>alter table users_audit drop column if exists permissions;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="users_backfill_cg_budget_permissions" author="zakaria el kotb">
+        <!-- Contrôle-de-gestion users keep budget access via the new permissions. Sorted CSV to match
+             the StringListConverter's on-write ordering (DEFINITION before NOMENCLATURE). -->
+        <sql>
+            update users
+               set permissions = 'PERM_BUDGET_DEFINITION,PERM_BUDGET_NOMENCLATURE'
+             where roles like '%ROLE_CONTROLE_GESTION%'
+               and (permissions is null or permissions = '');
+        </sql>
+        <rollback>
+            <sql>
+                update users set permissions = ''
+                 where permissions = 'PERM_BUDGET_DEFINITION,PERM_BUDGET_NOMENCLATURE';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

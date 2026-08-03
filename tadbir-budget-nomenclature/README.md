@@ -3,6 +3,22 @@
 Two things: **nomenclature definitions** (level templates) and the real **nomenclatures**
 (the filled trees built from a definition).
 
+## Access — role or fine-grained permission
+
+**Both reading and writing** budget config are allowed for: **`ROLE_ADMIN`**, **`ROLE_CONTROLE_GESTION`**
+(both manage the whole budget, no permission needed), **or** a user an admin has granted the matching
+**permission** (see `Permissions` in `tadbir-budget-common` — a plain-name catalogue like `Roles`, no
+prefix):
+
+- **`BUDGET_DEFINITION`** → the nomenclature-definition endpoints.
+- **`BUDGET_NOMENCLATURE`** → the nomenclature, rubrique and assignment endpoints.
+
+Permissions let an admin hand budget access to any employee à la carte, without giving them the CG
+role — granted via `PATCH /api/v1/user/{id}` `{ "permissions": [...] }` (admin only). The
+`usable-rubriques` resolver is the one exception — it stays open to any authenticated user (a project
+creator asks "what may I attach to a project"). In the tables below, **"Budget perm"** means *admin or
+contrôle de gestion or the matching `BUDGET_*` permission*.
+
 ## Nomenclature definitions — the *level templates*
 
 A nomenclature definition is naming/structure only: an ordered list of level names, e.g.
@@ -21,11 +37,11 @@ no money.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/v1/budget/nomenclature-definitions` | Authenticated | All definitions + their ordered levels |
-| `GET` | `/api/v1/budget/nomenclature-definitions/{id}` | Authenticated | One definition |
-| `POST` | `/api/v1/budget/nomenclature-definitions` | Admin / CdG | Create with its level names |
-| `PATCH` | `/api/v1/budget/nomenclature-definitions/{id}` | Admin / CdG | Update; may replace all levels |
-| `DELETE` | `/api/v1/budget/nomenclature-definitions/{id}` | Admin / CdG | Delete a definition + its levels |
+| `GET` | `/api/v1/budget/nomenclature-definitions` | Budget perm | All definitions + their ordered levels |
+| `GET` | `/api/v1/budget/nomenclature-definitions/{id}` | Budget perm | One definition |
+| `POST` | `/api/v1/budget/nomenclature-definitions` | Budget perm | Create with its level names |
+| `PATCH` | `/api/v1/budget/nomenclature-definitions/{id}` | Budget perm | Update; may replace all levels |
+| `DELETE` | `/api/v1/budget/nomenclature-definitions/{id}` | Budget perm | Delete a definition + its levels |
 
 **Create body:** `{ "name", "description"?, "levels": ["Chapitre","Article","Paragraphe","Ligne"] }`
 **Update body (PATCH, null = unchanged):** `{ "name"?, "description"?, "active"?, "levels"? }`
@@ -61,19 +77,19 @@ that will later carry the amounts. Lifecycle: **DRAFT** (build the tree) → **F
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `GET` | `/nomenclatures` | Authenticated | All nomenclatures (+ definition summary, rubrique count) |
-| `GET` | `/nomenclatures/{id}` | Authenticated | One nomenclature |
-| `POST` | `/nomenclatures` | Admin / CdG | Create against a definition (DRAFT) |
-| `PATCH` | `/nomenclatures/{id}` | Admin / CdG | Update name/description |
-| `POST` | `/nomenclatures/{id}/fix` | Admin / CdG | Publish the tree (DRAFT → FIXED) |
-| `POST` | `/nomenclatures/{id}/archive` | Admin / CdG | Retire (→ ARCHIVED) |
-| `POST` | `/nomenclatures/{id}/clone?copyAssignments=` | Admin / CdG | Clone a FIXED version → new DRAFT version |
-| `GET` | `/nomenclatures/{id}/versions` | Authenticated | All versions of this lineage |
-| `DELETE` | `/nomenclatures/{id}` | Admin / CdG | Delete a DRAFT nomenclature + its tree |
-| `GET` | `/nomenclatures/{id}/rubriques` | Authenticated | Flat rubrique list (build tree from `parentId`) |
-| `POST` | `/nomenclatures/{id}/rubriques` | Admin / CdG | Add a rubrique (DRAFT only) |
-| `PATCH` | `/nomenclatures/{id}/rubriques/{rubriqueId}` | Admin / CdG | Update code/label (DRAFT only) |
-| `DELETE` | `/nomenclatures/{id}/rubriques/{rubriqueId}` | Admin / CdG | Delete a childless rubrique (DRAFT only) |
+| `GET` | `/nomenclatures` | Budget perm | All nomenclatures (+ definition summary, rubrique count) |
+| `GET` | `/nomenclatures/{id}` | Budget perm | One nomenclature |
+| `POST` | `/nomenclatures` | Budget perm | Create against a definition (DRAFT) |
+| `PATCH` | `/nomenclatures/{id}` | Budget perm | Update name/description |
+| `POST` | `/nomenclatures/{id}/fix` | Budget perm | Publish the tree (DRAFT → FIXED) |
+| `POST` | `/nomenclatures/{id}/archive` | Budget perm | Retire (→ ARCHIVED) |
+| `POST` | `/nomenclatures/{id}/clone?copyAssignments=` | Budget perm | Clone a FIXED version → new DRAFT version |
+| `GET` | `/nomenclatures/{id}/versions` | Budget perm | All versions of this lineage |
+| `DELETE` | `/nomenclatures/{id}` | Budget perm | Delete a DRAFT nomenclature + its tree |
+| `GET` | `/nomenclatures/{id}/rubriques` | Budget perm | Flat rubrique list (build tree from `parentId`) |
+| `POST` | `/nomenclatures/{id}/rubriques` | Budget perm | Add a rubrique (DRAFT only) |
+| `PATCH` | `/nomenclatures/{id}/rubriques/{rubriqueId}` | Budget perm | Update code/label (DRAFT only) |
+| `DELETE` | `/nomenclatures/{id}/rubriques/{rubriqueId}` | Budget perm | Delete a childless rubrique (DRAFT only) |
 
 **Create nomenclature:** `{ "name", "description"?, "nomenclatureDefinitionId" }`
 **Create rubrique:** `{ "parentId"?, "code", "label" }` — level & leaf are derived server-side.
@@ -113,9 +129,9 @@ nomenclature.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `GET` | `/assignments?orgUnitId=` | Admin / CdG | Assignments in this nomenclature (optionally one unit) |
-| `POST` | `/assignments` | Admin / CdG | Assign `{ rubriqueId, orgUnitId }` (nomenclature must be FIXED) |
-| `DELETE` | `/assignments/{assignmentId}` | Admin / CdG | Remove an assignment |
+| `GET` | `/assignments?orgUnitId=` | Budget perm | Assignments in this nomenclature (optionally one unit) |
+| `POST` | `/assignments` | Budget perm | Assign `{ rubriqueId, orgUnitId }` (nomenclature must be FIXED) |
+| `DELETE` | `/assignments/{assignmentId}` | Budget perm | Remove an assignment |
 | `GET` | `/usable-rubriques?orgUnitId=` | Authenticated | Rubriques the caller may attach to a project |
 
 **Resolver logic:** a user in org unit *X* can use rubrique *L* when some assignment `(R → U)`

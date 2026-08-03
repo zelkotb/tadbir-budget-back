@@ -10,7 +10,7 @@ Persistence layer. Owns everything database-related: JPA entities, Spring Data r
 
 | Class | Table | Audited | Description |
 |---|---|---|---|
-| `User` | `users` | ✓ `@Audited` | Application user, implements `UserDetails`. Logs in with `uid`; roles stored as CSV via `StringListConverter`; belongs to an `org_unit` (nullable). |
+| `User` | `users` | ✓ `@Audited` | Application user, implements `UserDetails`. Logs in with `uid`; `roles` **and** `permissions` stored as CSV via `StringListConverter` (both exposed as authorities); belongs to an `org_unit` (nullable). |
 | `OrgUnit` | `org_unit` | ✓ `@Audited` | Organisation node (pôle/direction/département…), freely nested via `parent_id` + materialized `path` (`path`/`depth` not audited). |
 | `NomenclatureDefinition` | `nomenclature_definition` | — | Budget level template (pre-config): Chapitre→Article→…→Ligne. |
 | `NomenclatureDefinitionLevel` | `nomenclature_definition_level` | — | One ordered level of a definition (deepest = leaf). |
@@ -78,7 +78,9 @@ master.xml
     ├── 2026_07_26_project_terminate_date.xml  termination_year → termination_date (full date)
     ├── 2026_07_26_project_document.xml   project_document (files of any type, FK cascade)
     ├── 2026_07_26_project_phase.xml      project_phase (+ audit): phases with weight/completion + baseline
-    └── 2026_07_28_project_phase_subphase.xml  phase.parent_phase_id (self-FK, 2 levels) + status CANCELLED
+    ├── 2026_07_28_project_phase_subphase.xml  phase.parent_phase_id (self-FK, 2 levels) + status CANCELLED
+    ├── 2026_08_02_user_permissions.xml   users.permissions (+ audit) + back-fill CG users with budget perms
+    └── 2026_08_02_permission_rename.xml  normalize stored permission names (PERM_BUDGET_* → BUDGET_*)
 ```
 
 > The tree-type tables shipped in an earlier build as `budget_tree_type` / `budget_tree_level`;

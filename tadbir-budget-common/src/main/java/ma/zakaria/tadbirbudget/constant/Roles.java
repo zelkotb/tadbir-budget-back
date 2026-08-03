@@ -41,9 +41,6 @@ public final class Roles {
     public final String IS_DIRECTION_GENERALE  = "hasRole('DIRECTION_GENERALE')";
     public final String IS_CONTROLE_GESTION    = "hasRole('CONTROLE_GESTION')";
 
-    /** Budget configuration (nomenclature, tree types, campaigns): admin or contrôle de gestion. */
-    public final String IS_ADMIN_OR_CG = "hasAnyRole('ADMIN', 'CONTROLE_GESTION')";
-
     /**
      * May create / manage projects: the operational manager tiers (cell → pôle) plus admin.
      * Direction générale is deliberately excluded — it supervises (reads), it does not create.

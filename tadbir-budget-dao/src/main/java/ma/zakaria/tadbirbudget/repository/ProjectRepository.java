@@ -13,6 +13,8 @@ package ma.zakaria.tadbirbudget.repository;
 import ma.zakaria.tadbirbudget.entity.Project;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -23,6 +25,16 @@ import java.util.UUID;
 public interface ProjectRepository extends JpaRepository<Project, UUID>, JpaSpecificationExecutor<Project> {
 
     List<Project> findByOrgUnitIdInOrderByNameAsc(Collection<UUID> orgUnitIds);
+
+    /**
+     * Projects visible to a manager: those whose <b>chef</b> is one of {@code chefIds} (the caller and
+     * their direct reports) <b>or</b> whose org unit is in {@code orgUnitIds} (the caller's subtree).
+     * Either collection may be empty (Hibernate treats an empty {@code IN} as no-match).
+     */
+    @Query("select p from Project p where p.chefProjetId in :chefIds or p.orgUnitId in :orgUnitIds "
+            + "order by p.name asc")
+    List<Project> findByChefOrOrgUnit(@Param("chefIds") Collection<UUID> chefIds,
+                                      @Param("orgUnitIds") Collection<UUID> orgUnitIds);
 
     List<Project> findAllByOrderByNameAsc();
 

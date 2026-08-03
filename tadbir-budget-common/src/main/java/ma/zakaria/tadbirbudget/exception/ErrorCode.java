@@ -23,6 +23,7 @@ public enum ErrorCode {
     ACCOUNT_DISABLED,
     USER_NOT_FOUND,
     INVALID_ROLE,
+    INVALID_PERMISSION,
 
     // ── Refresh token ────────────────────────────────────────────────────────
     REFRESH_TOKEN_MISSING,

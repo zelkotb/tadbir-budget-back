@@ -12,7 +12,7 @@ package ma.zakaria.tadbirbudget.nomenclature.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import ma.zakaria.tadbirbudget.constant.Roles;
+import ma.zakaria.tadbirbudget.constant.Permissions;
 import ma.zakaria.tadbirbudget.nomenclature.dto.CreateRubriqueInput;
 import ma.zakaria.tadbirbudget.nomenclature.dto.RubriqueResponse;
 import ma.zakaria.tadbirbudget.nomenclature.dto.UpdateRubriqueInput;
@@ -26,12 +26,14 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * The rubrique tree of a nomenclature. Reads are open; writes require the nomenclature to be DRAFT
- * and the caller to be admin / contrôle de gestion. The client builds the tree from {@code parentId}.
+ * The rubrique tree of a nomenclature. Reading and writing both require the budget-nomenclature
+ * permission (admin always); writes additionally require the nomenclature to be DRAFT. The client
+ * builds the tree from {@code parentId}. See {@link Permissions}.
  */
 @RestController
 @RequestMapping("/api/v1/budget/nomenclatures/{nomenclatureId}/rubriques")
 @RequiredArgsConstructor
+@PreAuthorize(Permissions.CAN_MANAGE_BUDGET_NOMENCLATURE)
 public class NomenclatureRubriqueController {
 
     private final NomenclatureRubriqueService service;
@@ -44,7 +46,6 @@ public class NomenclatureRubriqueController {
 
     /** POST — add a rubrique ({@code parentId} null = top level). Admin/CdG, DRAFT only. */
     @PostMapping
-    @PreAuthorize(Roles.IS_ADMIN_OR_CG)
     public ResponseEntity<RubriqueResponse> create(@PathVariable UUID nomenclatureId,
                                                    @Valid @RequestBody CreateRubriqueInput input) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(nomenclatureId, input));
@@ -52,7 +53,6 @@ public class NomenclatureRubriqueController {
 
     /** PATCH — update a rubrique's code/label. Admin/CdG, DRAFT only. */
     @PatchMapping("/{rubriqueId}")
-    @PreAuthorize(Roles.IS_ADMIN_OR_CG)
     public ResponseEntity<RubriqueResponse> update(@PathVariable UUID nomenclatureId,
                                                    @PathVariable UUID rubriqueId,
                                                    @Valid @RequestBody UpdateRubriqueInput input) {
@@ -61,7 +61,6 @@ public class NomenclatureRubriqueController {
 
     /** DELETE — remove a leaf/childless rubrique. Admin/CdG, DRAFT only. */
     @DeleteMapping("/{rubriqueId}")
-    @PreAuthorize(Roles.IS_ADMIN_OR_CG)
     public ResponseEntity<Void> delete(@PathVariable UUID nomenclatureId, @PathVariable UUID rubriqueId) {
         service.delete(nomenclatureId, rubriqueId);
         return ResponseEntity.noContent().build();

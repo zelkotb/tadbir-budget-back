@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (c) 2026 Zakaria El Kotb. All rights reserved.
+
+    This source code is the exclusive property of Zakaria El Kotb.
+    Unauthorized copying, modification, distribution, or use of this file,
+    via any medium, is strictly prohibited without the prior written
+    permission of the copyright owner.
+
+    Author: Zakaria El Kotb <elkotbzakaria@gmail.com>
+
+-->
+<!--
+    Permission names dropped the PERM_ prefix (PERM_BUDGET_* → BUDGET_*). Forward migration that
+    normalizes any already-stored value in users.permissions (e.g. the earlier CG back-fill). No-op on
+    a fresh database. The audit table is left as-is (it records what was stored at each revision).
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="permissions_drop_perm_prefix" author="zakaria el kotb">
+        <sql>update users set permissions = replace(permissions, 'PERM_BUDGET_DEFINITION', 'BUDGET_DEFINITION')
+             where permissions like '%PERM_BUDGET_DEFINITION%';</sql>
+        <sql>update users set permissions = replace(permissions, 'PERM_BUDGET_NOMENCLATURE', 'BUDGET_NOMENCLATURE')
+             where permissions like '%PERM_BUDGET_NOMENCLATURE%';</sql>
+        <rollback>
+            <sql>update users set permissions = replace(permissions, 'BUDGET_DEFINITION', 'PERM_BUDGET_DEFINITION')
+                 where permissions like '%BUDGET_DEFINITION%';</sql>
+            <sql>update users set permissions = replace(permissions, 'BUDGET_NOMENCLATURE', 'PERM_BUDGET_NOMENCLATURE')
+                 where permissions like '%BUDGET_NOMENCLATURE%';</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

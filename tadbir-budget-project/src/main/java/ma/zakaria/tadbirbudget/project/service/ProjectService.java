@@ -87,15 +87,12 @@ public class ProjectService {
         if (seesAll(caller)) {
             base = projectRepository.findAllByOrderByNameAsc();
         } else {
-            OrgUnit callerUnit = caller.getOrgUnitId() == null ? null
-                    : orgUnitRepository.findById(caller.getOrgUnitId()).orElse(null);
-            if (callerUnit == null) {
-                return List.of();
-            }
-            List<UUID> subtree = orgUnitRepository
-                    .findByPathStartingWithOrderByPathAsc(callerUnit.getPath())
-                    .stream().map(OrgUnit::getId).toList();
-            base = projectRepository.findByOrgUnitIdInOrderByNameAsc(subtree);
+            // Projects I manage (I'm the chef) or whose chef is a direct report of mine, ...
+            Set<UUID> chefIds = new HashSet<>();
+            chefIds.add(caller.getId());
+            userRepository.findByManagerId(caller.getId()).forEach(u -> chefIds.add(u.getId()));
+            // ... or that belong to my org unit or any unit below it (subtree).
+            base = projectRepository.findByChefOrOrgUnit(chefIds, callerSubtreeUnitIds(caller));
         }
         List<Project> filtered = base.stream()
                 .filter(p -> status == null || p.getStatus() == status)
@@ -365,7 +362,25 @@ public class ProjectService {
                 || memberRepository.existsByProjectIdAndUserId(p.getId(), caller.getId())) {
             return;
         }
+        // The project's chef is a direct report of the caller.
+        User chef = userRepository.findById(p.getChefProjetId()).orElse(null);
+        if (chef != null && caller.getId().equals(chef.getManagerId())) {
+            return;
+        }
         throw new CustomException(ErrorCode.ACCESS_DENIED, HttpStatus.FORBIDDEN);
+    }
+
+    /** The caller's org unit and every unit below it (subtree), by id; empty if they have none. */
+    private List<UUID> callerSubtreeUnitIds(User caller) {
+        if (caller.getOrgUnitId() == null) {
+            return List.of();
+        }
+        OrgUnit unit = orgUnitRepository.findById(caller.getOrgUnitId()).orElse(null);
+        if (unit == null) {
+            return List.of();
+        }
+        return orgUnitRepository.findByPathStartingWithOrderByPathAsc(unit.getPath())
+                .stream().map(OrgUnit::getId).toList();
     }
 
     /** Supervisory / global read: admin, direction générale, contrôle de gestion. */

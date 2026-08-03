@@ -10,6 +10,7 @@
  */
 package ma.zakaria.tadbirbudget.user.dto;
 
+import ma.zakaria.tadbirbudget.entity.OrgUnit;
 import ma.zakaria.tadbirbudget.entity.User;
 
 import java.util.List;
@@ -24,10 +25,25 @@ public record UserResponse(
         List<String>    roles,
         boolean         enabled,
         int             failedLoginAttempts,
+        List<String>    permissions,
         UUID            managerId,
-        UUID            orgUnitId
+        String          managerUid,
+        String          managerFullName,
+        UUID            orgUnitId,
+        String          orgUnitName
 ) {
+    /** Without the manager / org unit resolved (ids only). */
     public static UserResponse from(User user) {
+        return from(user, null, null);
+    }
+
+    /** With the manager entity resolved so the UI can show the manager's name. */
+    public static UserResponse from(User user, User manager) {
+        return from(user, manager, null);
+    }
+
+    /** With the manager and the org-unit resolved so the UI can show both names. */
+    public static UserResponse from(User user, User manager, OrgUnit orgUnit) {
         return new UserResponse(
                 user.getId(),
                 user.getUid(),
@@ -37,8 +53,12 @@ public record UserResponse(
                 user.getRoles(),
                 user.isEnabled(),
                 user.getFailedLoginAttempts(),
+                user.getPermissions(),
                 user.getManagerId(),
-                user.getOrgUnitId()
+                manager == null ? null : manager.getUid(),
+                manager == null ? null : manager.getFullName(),
+                user.getOrgUnitId(),
+                orgUnit == null ? null : orgUnit.getName()
         );
     }
 }

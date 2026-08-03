@@ -76,6 +76,15 @@ public class User implements UserDetails {
     @Builder.Default
     private List<String> roles = new ArrayList<>();
 
+    /**
+     * Fine-grained permissions an admin grants à la carte (see
+     * {@link ma.zakaria.tadbirbudget.constant.Permissions}), carried as authorities alongside roles.
+     */
+    @Convert(converter = StringListConverter.class)
+    @Column(name = "permissions", nullable = false)
+    @Builder.Default
+    private List<String> permissions = new ArrayList<>();
+
     @Column(nullable = false)
     @Builder.Default
     private boolean enabled = true;
@@ -89,7 +98,9 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return roles.stream()
+        return java.util.stream.Stream.concat(
+                        roles.stream(),
+                        permissions == null ? java.util.stream.Stream.empty() : permissions.stream())
                 .map(SimpleGrantedAuthority::new)
                 .toList();
     }

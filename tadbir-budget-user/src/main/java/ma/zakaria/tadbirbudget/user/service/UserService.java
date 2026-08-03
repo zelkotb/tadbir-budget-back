@@ -12,7 +12,9 @@ package ma.zakaria.tadbirbudget.user.service;
 
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import ma.zakaria.tadbirbudget.constant.Permissions;
 import ma.zakaria.tadbirbudget.constant.Roles;
+import ma.zakaria.tadbirbudget.entity.OrgUnit;
 import ma.zakaria.tadbirbudget.entity.User;
 import ma.zakaria.tadbirbudget.exception.CustomException;
 import ma.zakaria.tadbirbudget.exception.ErrorCode;
@@ -33,8 +35,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +50,10 @@ public class UserService {
             Roles.ADMIN, Roles.EMPLOYEE, Roles.CELL_MANAGER, Roles.SERVICE_MANAGER, Roles.DEPARTMENT_MANAGER,
             Roles.DIRECTION_MANAGER, Roles.POLE_MANAGER, Roles.DIRECTION_GENERALE, Roles.CONTROLE_GESTION);
 
+    /** Fine-grained permissions an admin may grant à la carte. */
+    private static final Set<String> ASSIGNABLE_PERMISSIONS = Set.of(
+            Permissions.BUDGET_DEFINITION, Permissions.BUDGET_NOMENCLATURE);
+
     private final UserRepository    userRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final PasswordEncoder   passwordEncoder;
@@ -53,7 +62,7 @@ public class UserService {
     public UserResponse getMe() {
         User caller = (User) SecurityUtils.getCurrentUser();
         return userRepository.findById(caller.getId())
-                .map(UserResponse::from)
+                .map(u -> UserResponse.from(u, managerOf(u), orgUnitOf(u)))
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND, HttpStatus.NOT_FOUND));
     }
 
@@ -64,7 +73,7 @@ public class UserService {
             throw new CustomException(ErrorCode.ACCESS_DENIED, HttpStatus.FORBIDDEN);
         }
         return userRepository.findById(id)
-                .map(UserResponse::from)
+                .map(u -> UserResponse.from(u, managerOf(u), orgUnitOf(u)))
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND, HttpStatus.NOT_FOUND));
     }
 
@@ -100,6 +109,10 @@ public class UserService {
             user.setRoles(input.getRoles());
         }
 
+        if (isAdmin && input.getPermissions() != null) {
+            user.setPermissions(validatePermissions(input.getPermissions()));
+        }
+
         if (isAdmin && input.getManagerId() != null) {
             validateManager(input.getManagerId(), targetId);
             user.setManagerId(input.getManagerId());
@@ -115,8 +128,11 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public Page<UserResponse> listUsers(String fullName, String email, String uid,
-                                        Boolean enabled,
-                                        List<String> roles, Pageable pageable) {
+                                        Boolean enabled, List<String> roles,
+                                        UUID orgUnitId, UUID managerId, Pageable pageable) {
+        // Filtering by org unit returns everyone in that unit AND every unit below it (subtree).
+        final List<UUID> orgSubtree = orgUnitId == null ? null : orgUnitSubtreeIds(orgUnitId);
+
         Specification<User> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (fullName        != null) predicates.add(cb.like(cb.lower(root.get("fullName")),
@@ -126,6 +142,10 @@ public class UserService {
             if (uid             != null) predicates.add(cb.like(cb.lower(root.get("uid")),
                                                                 "%" + uid.toLowerCase() + "%"));
             if (enabled         != null) predicates.add(cb.equal(root.get("enabled"), enabled));
+            if (managerId       != null) predicates.add(cb.equal(root.get("managerId"), managerId));
+            if (orgSubtree      != null) predicates.add(orgSubtree.isEmpty()
+                    ? cb.disjunction()                                  // unknown unit → no results
+                    : root.get("orgUnitId").in(orgSubtree));
             if (roles != null && !roles.isEmpty()) {
                 // OR: user must have at least one of the requested roles.
                 // roles column is CSV ("ROLE_ADMIN,ROLE_INSTRUCTOR") — LIKE is safe because
@@ -137,7 +157,59 @@ public class UserService {
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
-        return userRepository.findAll(spec, pageable).map(UserResponse::from);
+
+        Page<User> page = userRepository.findAll(spec, pageable);
+        Map<UUID, User> managers = loadManagers(page.getContent());
+        Map<UUID, OrgUnit> orgUnits = loadOrgUnits(page.getContent());
+        return page.map(u -> UserResponse.from(u,
+                u.getManagerId() == null ? null : managers.get(u.getManagerId()),
+                u.getOrgUnitId() == null ? null : orgUnits.get(u.getOrgUnitId())));
+    }
+
+    /** The org unit and every unit below it (subtree), by id; empty if the unit does not exist. */
+    private List<UUID> orgUnitSubtreeIds(UUID orgUnitId) {
+        return orgUnitRepository.findById(orgUnitId)
+                .map(unit -> orgUnitRepository.findByPathStartingWithOrderByPathAsc(unit.getPath())
+                        .stream().map(OrgUnit::getId).toList())
+                .orElseGet(List::of);
+    }
+
+    /** Batch-loads the managers of the given users, so responses can show the manager's name. */
+    private Map<UUID, User> loadManagers(List<User> users) {
+        Set<UUID> managerIds = users.stream()
+                .map(User::getManagerId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (managerIds.isEmpty()) {
+            return Map.of();
+        }
+        return userRepository.findAllById(managerIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+    }
+
+    /** Resolves a single user's manager (or null) for the detail views. */
+    private User managerOf(User user) {
+        return user.getManagerId() == null ? null
+                : userRepository.findById(user.getManagerId()).orElse(null);
+    }
+
+    /** Resolves a single user's org unit (or null) so the response can show its name. */
+    private OrgUnit orgUnitOf(User user) {
+        return user.getOrgUnitId() == null ? null
+                : orgUnitRepository.findById(user.getOrgUnitId()).orElse(null);
+    }
+
+    /** Batch-loads the org units of the given users, so responses can show the unit's name. */
+    private Map<UUID, OrgUnit> loadOrgUnits(List<User> users) {
+        Set<UUID> orgUnitIds = users.stream()
+                .map(User::getOrgUnitId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (orgUnitIds.isEmpty()) {
+            return Map.of();
+        }
+        return orgUnitRepository.findAllById(orgUnitIds).stream()
+                .collect(Collectors.toMap(OrgUnit::getId, u -> u));
     }
 
     /** All users, for the manager (N+1) picker. */
@@ -162,6 +234,8 @@ public class UserService {
             }
         });
 
+        List<String> permissions = validatePermissions(input.getPermissions());
+
         if (input.getManagerId() != null && !userRepository.existsById(input.getManagerId())) {
             throw new CustomException(ErrorCode.USER_NOT_FOUND, HttpStatus.BAD_REQUEST);
         }
@@ -174,9 +248,23 @@ public class UserService {
                 .email(input.getEmail())
                 .password(passwordEncoder.encode(input.getPassword()))
                 .roles(roles)
+                .permissions(permissions)
                 .managerId(input.getManagerId())
                 .orgUnitId(input.getOrgUnitId())
                 .build());
+    }
+
+    /** Validates each requested permission against the assignable set; null → empty list. */
+    private List<String> validatePermissions(List<String> permissions) {
+        if (permissions == null || permissions.isEmpty()) {
+            return new ArrayList<>();
+        }
+        permissions.forEach(p -> {
+            if (!ASSIGNABLE_PERMISSIONS.contains(p)) {
+                throw new CustomException(ErrorCode.INVALID_PERMISSION, HttpStatus.BAD_REQUEST);
+            }
+        });
+        return permissions;
     }
 
     /** When provided, the org unit must exist. */

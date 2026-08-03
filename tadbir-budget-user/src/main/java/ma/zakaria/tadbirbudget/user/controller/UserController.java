@@ -40,8 +40,9 @@ public class UserController {
     /**
      * GET /api/v1/user
      * Paginated user list. All filters are optional and combinable.
-     * fullName, email, uid support partial case-insensitive matching.
-     * enabled is an exact match.
+     * fullName, email, uid support partial case-insensitive matching; enabled is an exact match.
+     * {@code orgUnitId} returns everyone in that unit <b>and every unit below it</b> (subtree);
+     * {@code managerId} returns that manager's direct reports.
      */
     @GetMapping
     @PreAuthorize(Roles.IS_ADMIN)
@@ -51,11 +52,13 @@ public class UserController {
             @RequestParam(required = false) String          uid,
             @RequestParam(required = false) Boolean         enabled,
             @RequestParam(required = false) List<String>    roles,
+            @RequestParam(required = false) UUID            orgUnitId,
+            @RequestParam(required = false) UUID            managerId,
             @PageableDefault(size = 20, sort = "fullName", direction = Sort.Direction.ASC)
             Pageable pageable) {
 
         return ResponseEntity.ok(
-                userService.listUsers(fullName, email, uid, enabled, roles, pageable));
+                userService.listUsers(fullName, email, uid, enabled, roles, orgUnitId, managerId, pageable));
     }
 
     /**

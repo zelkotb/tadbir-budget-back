@@ -50,6 +50,9 @@ public class CreateUserInput {
     @NotEmpty
     private List<String> roles;
 
+    /** Optional fine-grained permissions — see {@link ma.zakaria.tadbirbudget.constant.Permissions}. */
+    private List<String> permissions;
+
     /**
      * Optional: this user's direct superior (N+1) for the validation hierarchy. Must be an
      * existing user id. Leave null for users at the top of the chain.

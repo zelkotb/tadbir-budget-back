@@ -44,6 +44,9 @@ public class UpdateUserInput {
 
     private List<String> roles;
 
+    /** Admin-only: fine-grained permissions — see {@link ma.zakaria.tadbirbudget.constant.Permissions}. */
+    private List<String> permissions;
+
     /** Admin-only: this user's direct superior (N+1). Must be an existing, different user. */
     private UUID managerId;
 

@@ -12,7 +12,7 @@ package ma.zakaria.tadbirbudget.nomenclature.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import ma.zakaria.tadbirbudget.constant.Roles;
+import ma.zakaria.tadbirbudget.constant.Permissions;
 import ma.zakaria.tadbirbudget.nomenclature.dto.CreateRubriqueAssignmentInput;
 import ma.zakaria.tadbirbudget.nomenclature.dto.RubriqueAssignmentResponse;
 import ma.zakaria.tadbirbudget.nomenclature.dto.RubriqueResponse;
@@ -39,7 +39,7 @@ public class RubriqueAssignmentController {
 
     /** GET .../assignments?orgUnitId= — assignments in this nomenclature (optionally one unit). CG/admin. */
     @GetMapping("/assignments")
-    @PreAuthorize(Roles.IS_ADMIN_OR_CG)
+    @PreAuthorize(Permissions.CAN_MANAGE_BUDGET_NOMENCLATURE)
     public ResponseEntity<List<RubriqueAssignmentResponse>> list(
             @PathVariable UUID nomenclatureId,
             @RequestParam(required = false) UUID orgUnitId) {
@@ -48,7 +48,7 @@ public class RubriqueAssignmentController {
 
     /** POST .../assignments — assign a rubrique to an org unit (nomenclature must be FIXED). CG/admin. */
     @PostMapping("/assignments")
-    @PreAuthorize(Roles.IS_ADMIN_OR_CG)
+    @PreAuthorize(Permissions.CAN_MANAGE_BUDGET_NOMENCLATURE)
     public ResponseEntity<RubriqueAssignmentResponse> assign(
             @PathVariable UUID nomenclatureId,
             @Valid @RequestBody CreateRubriqueAssignmentInput input) {
@@ -57,7 +57,7 @@ public class RubriqueAssignmentController {
 
     /** DELETE .../assignments/{assignmentId} — remove an assignment. CG/admin. */
     @DeleteMapping("/assignments/{assignmentId}")
-    @PreAuthorize(Roles.IS_ADMIN_OR_CG)
+    @PreAuthorize(Permissions.CAN_MANAGE_BUDGET_NOMENCLATURE)
     public ResponseEntity<Void> unassign(@PathVariable UUID nomenclatureId,
                                          @PathVariable UUID assignmentId) {
         service.unassign(nomenclatureId, assignmentId);

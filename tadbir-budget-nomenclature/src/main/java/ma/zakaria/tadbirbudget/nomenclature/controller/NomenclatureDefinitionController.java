@@ -12,7 +12,7 @@ package ma.zakaria.tadbirbudget.nomenclature.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import ma.zakaria.tadbirbudget.constant.Roles;
+import ma.zakaria.tadbirbudget.constant.Permissions;
 import ma.zakaria.tadbirbudget.nomenclature.dto.CreateNomenclatureDefinitionInput;
 import ma.zakaria.tadbirbudget.nomenclature.dto.NomenclatureDefinitionResponse;
 import ma.zakaria.tadbirbudget.nomenclature.dto.UpdateNomenclatureDefinitionInput;
@@ -26,13 +26,13 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Budget nomenclature definitions (the level templates: Chapitre → Article → … → Ligne). Reads are
- * open to any authenticated user (reference data); writes are restricted to admins and contrôle de
- * gestion.
+ * Budget nomenclature definitions (the level templates: Chapitre → Article → … → Ligne). Both reading
+ * and writing require the budget-definition permission (admin always) — see {@link Permissions}.
  */
 @RestController
 @RequestMapping("/api/v1/budget/nomenclature-definitions")
 @RequiredArgsConstructor
+@PreAuthorize(Permissions.CAN_MANAGE_BUDGET_DEFINITION)
 public class NomenclatureDefinitionController {
 
     private final NomenclatureDefinitionService service;
@@ -51,7 +51,6 @@ public class NomenclatureDefinitionController {
 
     /** POST /api/v1/budget/nomenclature-definitions — create with its ordered level names. Admin/CdG. */
     @PostMapping
-    @PreAuthorize(Roles.IS_ADMIN_OR_CG)
     public ResponseEntity<NomenclatureDefinitionResponse> create(
             @Valid @RequestBody CreateNomenclatureDefinitionInput input) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(input));
@@ -62,7 +61,6 @@ public class NomenclatureDefinitionController {
      * replace the whole level list. Admin/CdG.
      */
     @PatchMapping("/{id}")
-    @PreAuthorize(Roles.IS_ADMIN_OR_CG)
     public ResponseEntity<NomenclatureDefinitionResponse> update(
             @PathVariable UUID id, @Valid @RequestBody UpdateNomenclatureDefinitionInput input) {
         return ResponseEntity.ok(service.update(id, input));
@@ -70,7 +68,6 @@ public class NomenclatureDefinitionController {
 
     /** DELETE /api/v1/budget/nomenclature-definitions/{id} — delete a definition + its levels. Admin/CdG. */
     @DeleteMapping("/{id}")
-    @PreAuthorize(Roles.IS_ADMIN_OR_CG)
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
